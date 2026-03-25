@@ -1,0 +1,373 @@
+/* ============================================
+   OpenClaw Security Blog — Dark Security Theme
+   ============================================ */
+
+/* --- Brand Colors: Red/Orange security palette --- */
+:root {
+  --vp-c-brand-1: #e53e3e;
+  --vp-c-brand-2: #f56565;
+  --vp-c-brand-3: #fc8181;
+  --vp-c-brand-soft: rgba(229, 62, 62, 0.14);
+}
+
+.dark {
+  --vp-c-brand-1: #f56565;
+  --vp-c-brand-2: #fc8181;
+  --vp-c-brand-3: #feb2b2;
+  --vp-c-brand-soft: rgba(245, 101, 101, 0.16);
+
+  --vp-c-bg: #0d1117;
+  --vp-c-bg-soft: #161b22;
+  --vp-c-bg-mute: #1c2128;
+  --vp-c-bg-alt: #0d1117;
+
+  --vp-c-divider: #21262d;
+  --vp-c-gutter: #1c2128;
+
+  --vp-c-text-1: #e6edf3;
+  --vp-c-text-2: #8b949e;
+  --vp-c-text-3: #6e7681;
+
+  --vp-code-block-bg: #161b22;
+  --vp-code-bg: rgba(245, 101, 101, 0.1);
+
+  --vp-c-default-soft: rgba(110, 118, 129, 0.12);
+}
+
+/* --- Hero Section --- */
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #e53e3e 0%, #f6ad55 50%, #e53e3e 100%);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #e53e3e 30%, #f6ad55 70%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+/* --- Custom Containers --- */
+
+/* Details/Collapsible POC sections */
+.dark .vp-doc details {
+  background: linear-gradient(135deg, rgba(245, 101, 101, 0.06) 0%, rgba(246, 173, 85, 0.04) 100%);
+  border: 1px solid rgba(245, 101, 101, 0.2);
+  border-radius: 8px;
+  padding: 0;
+  margin: 16px 0;
+  transition: all 0.3s ease;
+}
+
+.dark .vp-doc details:hover {
+  border-color: rgba(245, 101, 101, 0.4);
+  box-shadow: 0 0 20px rgba(245, 101, 101, 0.08);
+}
+
+.dark .vp-doc details[open] {
+  border-color: rgba(245, 101, 101, 0.35);
+  background: linear-gradient(135deg, rgba(245, 101, 101, 0.08) 0%, rgba(246, 173, 85, 0.06) 100%);
+}
+
+.dark .vp-doc summary {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #f56565;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s ease;
+  list-style: none;
+}
+
+.dark .vp-doc summary::-webkit-details-marker {
+  display: none;
+}
+
+.dark .vp-doc summary::before {
+  content: '▶';
+  font-size: 0.7em;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.dark .vp-doc details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.dark .vp-doc summary:hover {
+  color: #fc8181;
+}
+
+.dark .vp-doc details > :not(summary) {
+  padding: 0 20px;
+}
+
+.dark .vp-doc details > :last-child {
+  padding-bottom: 16px;
+}
+
+/* --- Info/Danger/Warning containers with security flair --- */
+.dark .vp-doc .custom-block.danger {
+  border-color: #e53e3e;
+  background: rgba(229, 62, 62, 0.08);
+}
+
+.dark .vp-doc .custom-block.warning {
+  border-color: #f6ad55;
+  background: rgba(246, 173, 85, 0.08);
+}
+
+.dark .vp-doc .custom-block.info {
+  border-color: #63b3ed;
+  background: rgba(99, 179, 237, 0.08);
+}
+
+.dark .vp-doc .custom-block.tip {
+  border-color: #48bb78;
+  background: rgba(72, 187, 120, 0.08);
+}
+
+/* --- Tables --- */
+.dark .vp-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #21262d;
+}
+
+.dark .vp-doc table thead {
+  background: linear-gradient(135deg, rgba(245, 101, 101, 0.12) 0%, rgba(246, 173, 85, 0.08) 100%);
+}
+
+.dark .vp-doc table thead th {
+  font-weight: 700;
+  color: #f56565;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid rgba(245, 101, 101, 0.25);
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dark .vp-doc table tbody tr {
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s ease;
+}
+
+.dark .vp-doc table tbody tr:hover {
+  background: rgba(245, 101, 101, 0.04);
+}
+
+.dark .vp-doc table td {
+  padding: 10px 16px;
+  font-size: 0.95em;
+}
+
+/* Highlight "Critical" severity in tables */
+.dark .vp-doc table td:nth-child(2),
+.dark .vp-doc table td:nth-child(3) {
+  white-space: nowrap;
+}
+
+/* --- Code blocks --- */
+.dark .vp-doc div[class*='language-'] {
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  background: #0d1117 !important;
+}
+
+.dark .vp-doc div[class*='language-']::before {
+  color: #6e7681;
+}
+
+.dark .vp-doc code {
+  color: #f56565;
+  background: rgba(245, 101, 101, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+}
+
+.dark .vp-doc div[class*='language-'] code {
+  color: inherit;
+  background: none;
+  padding: 0;
+}
+
+/* --- Blockquotes --- */
+.dark .vp-doc blockquote {
+  border-left: 3px solid #f56565;
+  background: rgba(245, 101, 101, 0.06);
+  padding: 12px 20px;
+  margin: 20px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.dark .vp-doc blockquote p {
+  color: #e6edf3;
+  font-style: italic;
+}
+
+/* --- Strong/Bold text glow --- */
+.dark .vp-doc strong {
+  color: #e6edf3;
+  font-weight: 700;
+}
+
+/* --- Headings --- */
+.dark .vp-doc h1 {
+  background: linear-gradient(135deg, #f56565, #f6ad55);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.dark .vp-doc h2 {
+  color: #e6edf3;
+  border-bottom: 1px solid rgba(245, 101, 101, 0.2);
+  padding-bottom: 8px;
+}
+
+.dark .vp-doc h3 {
+  color: #f56565;
+}
+
+/* --- Sidebar --- */
+.dark .VPSidebar {
+  background: #0d1117;
+  border-right: 1px solid #21262d;
+}
+
+.dark .VPSidebarItem .text {
+  transition: color 0.2s ease;
+}
+
+.dark .VPSidebarItem.is-active > .item > .indicator {
+  background: linear-gradient(180deg, #f56565, #f6ad55);
+}
+
+/* --- Nav --- */
+.dark .VPNav {
+  background: rgba(13, 17, 23, 0.85) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #21262d;
+}
+
+/* --- Scrollbar --- */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #21262d;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 101, 101, 0.4);
+}
+
+/* --- Horizontal Rules --- */
+.dark .vp-doc hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 101, 101, 0.3), transparent);
+  margin: 40px 0;
+}
+
+/* --- TL;DR Box --- */
+.dark .vp-doc > p:first-of-type strong:first-child {
+  color: #f6ad55;
+}
+
+/* --- Footer --- */
+.dark .VPFooter {
+  border-top: 1px solid #21262d;
+  background: #0d1117;
+}
+
+/* --- Smooth animations --- */
+.dark .vp-doc * {
+  scroll-behavior: smooth;
+}
+
+/* --- Badge for severity levels --- */
+.badge-critical {
+  background: linear-gradient(135deg, #e53e3e, #c53030);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-high {
+  background: linear-gradient(135deg, #dd6b20, #c05621);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-medium {
+  background: linear-gradient(135deg, #d69e2e, #b7791f);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Stat cards used on homepage --- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, rgba(245, 101, 101, 0.08) 0%, rgba(246, 173, 85, 0.04) 100%);
+  border: 1px solid rgba(245, 101, 101, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: rgba(245, 101, 101, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 101, 101, 0.12);
+}
+
+.stat-card .number {
+  font-size: 2em;
+  font-weight: 900;
+  background: linear-gradient(135deg, #f56565, #f6ad55);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.stat-card .label {
+  font-size: 0.85em;
+  color: #8b949e;
+  margin-top: 4px;
+}
