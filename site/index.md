@@ -91,6 +91,6 @@ A comprehensive analysis of OpenClaw — 687K lines of TypeScript powering auton
 We surveyed 14 attack surfaces, evaluated 7 defense categories, and analyzed incidents through March 2026. No single defense covers even half the threats. No defense provides deterministic guarantees. Every defense has documented bypasses.
 </p>
 
-[Read the Technical Blog →](/blog/)  &nbsp; &nbsp; [Read the Full Paper →](/paper/)
+[Read the Position Paper →](/paper/)
 
 </div>

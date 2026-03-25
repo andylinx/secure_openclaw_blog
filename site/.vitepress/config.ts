@@ -21,51 +21,20 @@ export default defineConfig({
     siteTitle: '🛡️ OpenClaw Security',
 
     nav: [
-      { text: 'Blog', link: '/blog/' },
       { text: 'Position Paper', link: '/paper/' },
-      { text: 'References', link: '/references' },
     ],
 
     sidebar: {
-      '/blog/': [
-        {
-          text: 'The Attack Surfaces',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/blog/' },
-            { text: '1. Prompt Injection', link: '/blog/#_1-prompt-injection-the-root-vulnerability' },
-            { text: '2. Memory Poisoning', link: '/blog/#_2-memory-poisoning-making-attacks-permanent' },
-            { text: '3. Supply Chain', link: '/blog/#_3-supply-chain-1-in-5-skills-is-malicious' },
-            { text: '4. Sandbox Escape', link: '/blog/#_4-sandbox-escape-17-defense-rate' },
-            { text: '5. Tool & MCP Abuse', link: '/blog/#_5-tool-mcp-abuse-30-cves-in-year-one' },
-            { text: '6. Cross-Agent Escalation', link: '/blog/#_6-cross-agent-escalation-agents-infecting-agents' },
-            { text: '7. Cognitive Manipulation', link: '/blog/#_7-cognitive-manipulation-exploiting-the-reasoning-process' },
-            { text: '8. NHI Credentials', link: '/blog/#_8-nhi-credential-attacks-the-invisible-attack-surface' },
-            { text: '9. Composition Attacks', link: '/blog/#_9-composition-attacks-dos-lateral-movement' },
-          ]
-        },
-        {
-          text: 'Why Defenses Fail',
-          collapsed: false,
-          items: [
-            { text: 'Defense Overview', link: '/blog/#part-2-why-every-defense-fails' },
-            { text: 'The Scoreboard', link: '/blog/#the-scoreboard' },
-          ]
-        },
-        {
-          text: 'The Path Forward',
-          collapsed: false,
-          items: [
-            { text: 'Architectural Redesign', link: '/blog/#part-3-the-path-forward' },
-            { text: 'Call to Action', link: '/blog/#the-call-to-action' },
-          ]
-        }
-      ],
       '/paper/': [
         {
           text: 'Position Paper',
+          collapsed: false,
           items: [
-            { text: 'Full Paper', link: '/paper/' },
+            { text: 'Overview', link: '/paper/' },
+            { text: 'Part 1: Threat Landscape', link: '/paper/#part-1-the-threat-landscape' },
+            { text: 'Part 2: Why Defenses Fail', link: '/paper/#part-2-existing-defenses-and-why-each-one-fails' },
+            { text: 'Part 3: The Path Forward', link: '/paper/#part-3-the-path-forward' },
+            { text: 'References', link: '/paper/#references' },
           ]
         }
       ]
