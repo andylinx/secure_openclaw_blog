@@ -1,5 +1,5 @@
 Here are things you need to update!
 
-1.  Remove "Taming OpenClaw": Five-Layer Lifecycle Defense from 2.2 Since they are more like a case study of a survey, not a real defense
-2. For each work in 2.2 They don't need to be so detailed. Including their presented benchmark results is useless. Use one or two paragraphs to showcase what they can defend and what they do. While last paragraph carefully analyze all the attack above, list not defensable attacks and why
-3. 2.1 do not has two columns any more, just one thing a row is fine! it's a jam now
+1.  Remove "What Remains Undefensible — and Why" part, just specifically add what each system level framework cannot defend independently.
+1.  Currently the light theme is too ugly, some words have unreadable color in light theme. And the background color of each components in 2.1, 2.2 should also be updated
+1.  Reduce the use of "-", it's too much!
