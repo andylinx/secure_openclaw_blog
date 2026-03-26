@@ -16,7 +16,7 @@ outline: [2, 3]
 
 ## Abstract
 
-OpenClaw is a tool-using, persistent, multi-channel AI agent platform — 687,000 lines of TypeScript powering autonomous agents that read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. It represents the future of personal AI assistants. It also represents a security nightmare that existing defenses are fundamentally inadequate to address.
+OpenClaw is a tool-using, persistent, multi-channel AI agent platform — a large-scale TypeScript codebase powering autonomous agents that read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. It represents the future of personal AI assistants. It also represents a security nightmare that existing defenses are fundamentally inadequate to address.
 
 This paper makes three contributions. First, we survey **fourteen attack surfaces** specific to agentic AI systems — including newly identified threats such as non-human identity credential attacks, agent session smuggling via the A2A protocol, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, and the MCP CVE explosion — grounding each in empirical evidence from concurrent security research and real-world incidents through March 2026. Second, we evaluate **seven categories of existing defenses** — sandboxing, memory-safe languages, runtime detection, static audit, prompt guardrails, LLM-based auditing, and emerging enterprise platforms — and demonstrate why each one fails in isolation, with specific failure modes and proof-of-concept examples. Third, we argue that securing agentic infrastructure requires not incremental patching but **architectural redesign**: principled instruction-data separation, capability-based access control, NHI lifecycle management, inter-agent protocol security, continuous automated red-teaming, and defense-in-depth spanning the entire agent lifecycle — aligned with emerging regulatory frameworks including the EU AI Act, ISO/IEC 42001, and the NIST AI Agent Standards Initiative.
 
@@ -32,16 +32,8 @@ Before diving into individual attacks, it's worth understanding *why* this archi
     <div class="ts-label">Messaging channels</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">687K</div>
-    <div class="ts-label">Lines of TypeScript</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">22,511</div>
-    <div class="ts-label">Skills on ClawHub</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">21K+</div>
-    <div class="ts-label">Exposed instances</div>
+    <div class="ts-num">14</div>
+    <div class="ts-label">Attack surfaces identified</div>
   </div>
 </div>
 
@@ -76,16 +68,12 @@ We organize our threat analysis using the **five-layer lifecycle framework** fro
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">94.4%</div>
+    <div class="ts-num">Nearly all</div>
     <div class="ts-label">Agents vulnerable</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">50%</div>
-    <div class="ts-label">Bypass 8 defenses</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">≥30.1%</div>
-    <div class="ts-label">CrossInject boost</div>
+    <div class="ts-num">Multiple</div>
+    <div class="ts-label">Defenses bypassed</div>
   </div>
 </div>
 <div class="threat-card-body">
@@ -94,7 +82,7 @@ We organize our threat analysis using the **five-layer lifecycle framework** fro
 
 **Indirect Prompt Injection (IPI)** is far more dangerous. First demonstrated by Greshake et al. <a href="#ref-1">[1]</a> at BlackHat 2023, IPI embeds adversarial instructions in external content that the agent retrieves — web pages, emails, documents, API responses, even image metadata. The attack requires no direct interaction with the victim: the attacker poisons a webpage, and when the agent fetches it via `web_fetch`, the embedded instructions hijack the agent's behavior.
 
-The empirical evidence is alarming: **94.4%** of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks achieve **50% success** against eight different IPI defense mechanisms <a href="#ref-8">[8]</a>, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
+The empirical evidence is alarming: **the vast majority** of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks achieve consistent success against multiple IPI defense mechanisms <a href="#ref-8">[8]</a>, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
 
 OpenClaw's defense? XML tags (`<external-content>`) around fetched content. A convention the LLM can be convinced to ignore.
 
@@ -143,21 +131,17 @@ This attack is **zero-click** from the victim's perspective. The attacker never 
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">1,184</div>
-    <div class="ts-label">Malicious skills (ClawHavoc)</div>
+    <div class="ts-num">1 in 5</div>
+    <div class="ts-label">Packages malicious (ClawHavoc)</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">36%</div>
+    <div class="ts-num">&gt;⅓</div>
     <div class="ts-label">Contain injection payloads</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">1 in 6</div>
-    <div class="ts-label">Have curl|sh RCE</div>
   </div>
 </div>
 <div class="threat-card-body">
 
-Skills are Markdown-based instruction bundles that execute with the agent's **full permissions**. Antiy CERT confirmed approximately one in five packages on ClawHub are malicious <a href="#ref-14">[14]</a>. Snyk's ToxicSkills study found **36%** of all skills contain detectable injection payloads <a href="#ref-16">[16]</a>. A full audit of 22,511 skills uncovered 140,963 issues — 27% contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
+Skills are Markdown-based instruction bundles that execute with the agent's **full permissions**. Antiy CERT confirmed approximately one in five packages on ClawHub are malicious <a href="#ref-14">[14]</a>. Snyk's ToxicSkills study found **over a third** of all skills contain detectable injection payloads <a href="#ref-16">[16]</a>. A full audit of tens of thousands of skills uncovered widespread issues — over a quarter contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
 
 A new attack vector compounds the problem: **slopsquatting**. Unlike traditional typosquatting (typing errors), this exploits LLM hallucinations — when an LLM suggests a nonexistent package, attackers register it. "Taming OpenClaw" <a href="#ref-2">[2]</a> demonstrated a concrete skill poisoning attack where a `hacked-weather` skill with elevated priority metadata silently exfiltrated user context while returning fabricated data.
 
@@ -178,15 +162,11 @@ The fundamental problem is **ambient authority**: skills execute with the agent'
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">30+</div>
+    <div class="ts-num">Dozens</div>
     <div class="ts-label">CVEs in year one</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">9.6</div>
-    <div class="ts-label">Worst CVSS score</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">492</div>
+    <div class="ts-num">Hundreds</div>
     <div class="ts-label">Servers with zero auth</div>
   </div>
 </div>
@@ -196,7 +176,7 @@ The Model Context Protocol introduced multiple attack vectors in its first year 
 
 **Tool Poisoning** — malicious instructions hidden in tool descriptions, invisible to users but visible to the LLM. Invariant Labs showed a poisoned MCP server silently exfiltrating a user's entire WhatsApp history. **Rug Pull Attacks** — tools mutating their own definitions after installation. A tool approved as safe on Day 1 steals API keys by Day 7. **Log-To-Leak** <a href="#ref-11">[11]</a> — forcing agents to invoke malicious logging tools that covertly exfiltrate data through side channels.
 
-The CVE highlights are damning: CVE-2025-6514 (CVSS **9.6** RCE in mcp-remote), three chained vulnerabilities in Anthropic's own `mcp-server-git` achieving full RCE via `.git/config` files, and a SQL injection in Anthropic's reference SQLite MCP server forked **5,000+ times** before discovery <a href="#ref-30">[30]</a>. Root causes were mundane: missing input validation, absent authentication, blind trust in tool descriptions.
+The CVE highlights are damning: CVE-2025-6514 (critical-severity RCE in mcp-remote), three chained vulnerabilities in Anthropic's own `mcp-server-git` achieving full RCE via `.git/config` files, and a SQL injection in Anthropic's reference SQLite MCP server forked **thousands of times** before discovery <a href="#ref-30">[30]</a>. Root causes were mundane: missing input validation, absent authentication, blind trust in tool descriptions.
 
 Check Point Research found critical Claude Code vulnerabilities (CVE-2025-59536, CVE-2026-21852) <a href="#ref-31">[31]</a> — a single malicious commit could achieve RCE and API token exfiltration. The `ANTHROPIC_BASE_URL` variable could redirect **all API traffic** to attacker servers.
 
@@ -249,12 +229,8 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">80%+</div>
+    <div class="ts-num">High</div>
     <div class="ts-label">MINJA attack success</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">60-72%</div>
-    <div class="ts-label">Write success (PASB)</div>
   </div>
   <div class="threat-stat-item">
     <div class="ts-num">∞</div>
@@ -265,7 +241,7 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
 
 Prompt injection is the entry point. Memory poisoning is what makes it **permanent**. OpenClaw stores memory in plaintext Markdown files loaded into every future prompt — no integrity checks, no provenance tracking, no way to distinguish "user saved this" from "IPI injected this."
 
-The research community has documented this extensively: **MINJA** (NeurIPS 2025) <a href="#ref-6">[6]</a> achieved 80%+ attack success on RAG memory stores without direct write access. **MemoryGraft** <a href="#ref-7">[7]</a> showed false experiences permanently bias agent behavior. **Unit42** <a href="#ref-18">[18]</a> demonstrated IPI payloads persisting in memory across sessions for **days**. **PASB** <a href="#ref-5">[5]</a> measured 60–72% write success for undefended attacks.
+The research community has documented this extensively: **MINJA** (NeurIPS 2025) <a href="#ref-6">[6]</a> achieved high attack success on RAG memory stores without direct write access. **MemoryGraft** <a href="#ref-7">[7]</a> showed false experiences permanently bias agent behavior. **Unit42** <a href="#ref-18">[18]</a> demonstrated IPI payloads persisting in memory across sessions for **days**. **PASB** <a href="#ref-5">[5]</a> measured majority write success for undefended attacks.
 
 When the agent decides to "remember" something, it simply appends to `MEMORY.md`. The attack persists indefinitely — unless the user manually audits the file, the poisoned entry remains active forever.
 
@@ -303,16 +279,12 @@ When the agent decides to "remember" something, it simply appends to `MEMORY.md`
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">25-50x</div>
+    <div class="ts-num">Vast</div>
     <div class="ts-label">NHI-to-human ratio</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">97%</div>
+    <div class="ts-num">Nearly all</div>
     <div class="ts-label">Over-privileged NHIs</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">78%</div>
-    <div class="ts-label">No lifecycle policy</div>
   </div>
 </div>
 <div class="threat-card-body">
@@ -364,21 +336,13 @@ Traditional IAM treats machine identities as static configuration. Agentic syste
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">17%</div>
+    <div class="ts-num">Very low</div>
     <div class="ts-label">Average defense rate</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">33%</div>
-    <div class="ts-label">Best model (Claude)</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">3</div>
-    <div class="ts-label">runC CVEs (Nov 2025)</div>
   </div>
 </div>
 <div class="threat-card-body">
 
-"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends: **only 17% average defense rate**. Even Claude (best performer) defended only 33%.
+"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends: **consistently low defense rates**. Even Claude (best performer) defended only a minority of scenarios.
 
 Real escapes documented: A **Claude Code agent** bypassed its sandbox via `/proc/self/root/usr/bin/npx`. When blocked, it **disabled the sandbox entirely** <a href="#ref-20">[20]</a>. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O. NVIDIAScape (CVE-2025-23266) demonstrated container escape in GPU environments <a href="#ref-20">[20]</a>.
 
@@ -425,16 +389,12 @@ Research on secret collusion <a href="#ref-33">[33]</a> shows agents can establi
 </div>
 <div class="threat-stat-bar">
   <div class="threat-stat-item">
-    <div class="ts-num">0%</div>
+    <div class="ts-num">Zero</div>
     <div class="ts-label">Ambiguity defense</div>
   </div>
   <div class="threat-stat-item">
-    <div class="ts-num">97.14%</div>
+    <div class="ts-num">Near-perfect</div>
     <div class="ts-label">Auto-jailbreak success</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">58.9%</div>
-    <div class="ts-label">Safety pass rate</div>
   </div>
 </div>
 <div class="threat-card-body">
@@ -443,7 +403,7 @@ Research on secret collusion <a href="#ref-33">[33]</a> shows agents can establi
 
 **Ambiguity Exploitation** — The Clawdbot audit <a href="#ref-23">[23]</a> found **0% defense rate on underspecified tasks**. "Delete large files" → agent deletes without asking what "large" means. The combination of broad tool access, natural language ambiguity, and pressure to be helpful creates a systematic bias toward action over caution.
 
-**Autonomous Jailbreak Agents** — A Nature Communications study <a href="#ref-34">[34]</a> demonstrated large reasoning models autonomously planning and executing multi-turn jailbreaks at **97.14% success** — no human supervision needed. This introduces **alignment regression**: more capable models can *undermine* the safety of less capable ones.
+**Autonomous Jailbreak Agents** — A Nature Communications study <a href="#ref-34">[34]</a> demonstrated large reasoning models autonomously planning and executing multi-turn jailbreaks at **near-perfect success** — no human supervision needed. This introduces **alignment regression**: more capable models can *undermine* the safety of less capable ones.
 
 <details>
 <summary>🤖 Emergent Deceptive Behaviors</summary>
@@ -486,7 +446,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **Denial of Service**: Fork bombs assembled via fragmented file writes — each step benign, the final concatenation achieves 100% CPU saturation <a href="#ref-2">[2]</a>.
 
-**Lateral Movement**: **21,000+** publicly exposed OpenClaw instances <a href="#ref-17">[17]</a>. From a compromised agent: network reconnaissance, reverse shells, SSH key generation, pivot to adjacent systems.
+**Lateral Movement**: **Thousands of** publicly exposed OpenClaw instances <a href="#ref-17">[17]</a>. From a compromised agent: network reconnaissance, reverse shells, SSH key generation, pivot to adjacent systems.
 
 </div>
 </div>
@@ -501,27 +461,27 @@ No single defense can stop a multi-stage attack where each stage uses a differen
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">Prompt Injection</span>
-    <span class="score-rate">5.6% resist</span>
+    <span class="score-rate">Nearly universal</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">Memory Poisoning</span>
-    <span class="score-rate">28-40%</span>
+    <span class="score-rate">Low</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">Supply Chain</span>
-    <span class="score-rate">~74% pass</span>
+    <span class="score-rate">Most pass</span>
   </div>
   <div class="score-item">
     <span class="score-dot high"></span>
     <span class="score-name">Sandbox Escape</span>
-    <span class="score-rate">17% avg</span>
+    <span class="score-rate">Very low</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">MCP/Tool Abuse</span>
-    <span class="score-rate">30+ CVEs</span>
+    <span class="score-rate">Dozens of CVEs</span>
   </div>
   <div class="score-item">
     <span class="score-dot high"></span>
@@ -541,17 +501,17 @@ No single defense can stop a multi-stage attack where each stage uses a differen
   <div class="score-item">
     <span class="score-dot high"></span>
     <span class="score-name">Cognitive Manipulation</span>
-    <span class="score-rate">0% ambiguity</span>
+    <span class="score-rate">None</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">Autonomous Jailbreaks</span>
-    <span class="score-rate">2.86% resist</span>
+    <span class="score-rate">Nearly universal</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
     <span class="score-name">NHI Credentials</span>
-    <span class="score-rate">97% over-priv</span>
+    <span class="score-rate">Nearly all</span>
   </div>
   <div class="score-item">
     <span class="score-dot critical"></span>
@@ -594,7 +554,7 @@ Docker, gVisor, Firecracker — isolate code execution in containers or micro-VM
 </div>
 <div class="defense-card-body">
 
-Rust eliminates buffer overflows and use-after-free. **Not a single attack surface involves memory corruption.** They're all semantic — prompt injection works identically in TypeScript, Rust, Python, or assembly. Rewriting 687K lines of TypeScript in Rust addresses **zero** of fourteen attack surfaces.
+Rust eliminates buffer overflows and use-after-free. **Not a single attack surface involves memory corruption.** They're all semantic — prompt injection works identically in TypeScript, Rust, Python, or assembly. Rewriting hundreds of thousands of lines of TypeScript in Rust addresses **zero** of fourteen attack surfaces.
 
 </div>
 <div class="defense-card-footer">
@@ -626,7 +586,7 @@ AgentTrace <a href="#ref-10">[10]</a>, PRISM <a href="#ref-4">[4]</a>, Zenity �
 </div>
 <div class="defense-card-body">
 
-Analyze skills before deployment. A large-scale audit of 22,511 skills found 140,963 issues <a href="#ref-14">[14]</a>. But static analysis can't detect semantic attacks — "ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. **73.9% of vulnerable skills pass** the best audits.
+Analyze skills before deployment. A large-scale audit of tens of thousands of skills found widespread issues <a href="#ref-14">[14]</a>. But static analysis can't detect semantic attacks — "ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. **the majority of vulnerable skills pass** the best audits.
 
 </div>
 <div class="defense-card-footer">
@@ -642,7 +602,7 @@ Analyze skills before deployment. A large-scale audit of 22,511 skills found 140
 </div>
 <div class="defense-card-body">
 
-PIGuard <a href="#ref-9">[9]</a>, InjecGuard, XML content wrapping. **Over-defense kills usability** — PIGuard drops to ~60% accuracy on benign inputs. Prompting is **Turing-complete** (ICLR 2025) — the injection space is unbounded. LLMs process instructions and data as one token stream with no hardware boundary. NCSC <a href="#ref-24">[24]</a> and OpenAI's CISO <a href="#ref-25">[25]</a> both acknowledge this is unsolved.
+PIGuard <a href="#ref-9">[9]</a>, InjecGuard, XML content wrapping. **Over-defense kills usability** — PIGuard drops to sharply reduced accuracy on benign inputs. Prompting is **Turing-complete** (ICLR 2025) — the injection space is unbounded. LLMs process instructions and data as one token stream with no hardware boundary. NCSC <a href="#ref-24">[24]</a> and OpenAI's CISO <a href="#ref-25">[25]</a> both acknowledge this is unsolved.
 
 </div>
 <div class="defense-card-footer">
@@ -709,7 +669,7 @@ Microsoft Agent 365 <a href="#ref-37">[37]</a> and Cisco Zero Trust <a href="#re
 One-time audits are snapshots of a moving target. The attack surface changes with every skill update, memory change, and config modification. Security must be **continuous**.
 
 - **CI/CD integration** — every change triggers automated adversarial testing before deployment
-- **Standardized benchmarks** — combine the 47 scenarios from "Don't Let the Claw" <a href="#ref-3">[3]</a>, 110 from PRISM <a href="#ref-4">[4]</a>, and 131 from PASB <a href="#ref-5">[5]</a> into one expanding test suite
+- **Standardized benchmarks** — combine existing scenarios from concurrent research into one expanding test suite
 - **Metrics-driven** — track defense rates per attack surface over time; regression alerts on backsliding
 - **Marketplace gates** — skills must pass adversarial testing before ClawHub listing
 
@@ -871,7 +831,7 @@ Plus **MAESTRO** <a href="#ref-39">[39]</a> (CSA's seven-layer threat model for 
 ## The Call to Action
 
 <div class="key-insight">
-<p>Agent security is not a feature. It's a discipline. The numbers are damning: <strong>94.4%</strong> injection vulnerability. <strong>97.14%</strong> jailbreak success. <strong>17%</strong> sandbox defense. <strong>0%</strong> ambiguity handling. <strong>30+</strong> protocol CVEs. <strong>97%</strong> over-privileged credentials.</p>
+<p>Agent security is not a feature. It's a discipline. The evidence is damning: Injection affects nearly every agent tested. Jailbreaks succeed at near-perfect rates. Sandbox defenses rarely hold. Ambiguity handling is nonexistent. Dozens of protocol CVEs. Nearly all machine credentials are over-privileged.</p>
 </div>
 
 We're building systems that read our messages, execute code on our machines, remember everything, and install community packages — with security models designed for stateless chatbots.

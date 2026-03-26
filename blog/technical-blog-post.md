@@ -1,6 +1,6 @@
 # Every Defense Fails: What 14 Attack Surfaces Teach Us About AI Agent Security
 
-**TL;DR:** We analyzed OpenClaw — a 687K-line TypeScript AI agent platform — and found 14 distinct attack surfaces with defense rates ranging from 0% to 17%. Prompt injection hits 94.4% of agents. Reasoning models jailbreak other AIs at 97% success rates. 36% of marketplace skills contain injection payloads. 30+ MCP CVEs in year one. No existing defense — not sandboxing, not guardrails, not Rust, not LLM-based auditing — provides security guarantees. The path forward requires architectural redesign, not incremental patches.
+**TL;DR:** We analyzed OpenClaw — a large-scale TypeScript AI agent platform — and found fourteen distinct attack surfaces with consistently low defense rates. Prompt injection affects the vast majority of agents. Reasoning models jailbreak other AIs with near-perfect success rates. Over a third of marketplace skills contain injection payloads. Dozens of MCP CVEs in year one. No existing defense — not sandboxing, not guardrails, not Rust, not LLM-based auditing — provides security guarantees. The path forward requires architectural redesign, not incremental patches.
 
 *This post assumes familiarity with LLMs, agent architectures, and basic security concepts. If you're new to AI agents, start with [OpenClaw's documentation](https://openclaw.dev).*
 
@@ -31,7 +31,7 @@ The dangerous combination: **tool use + persistence + multi-channel exposure**. 
 
 ### 1. Prompt Injection — The Root Vulnerability
 
-94.4% of state-of-the-art LLM agents are vulnerable. Adaptive attacks hit 50% success against *eight different defense mechanisms*.
+The vast majority of state-of-the-art LLM agents are vulnerable. Adaptive attacks succeed against multiple defense mechanisms simultaneously.
 
 The indirect variant (IPI) is the real threat. An attacker poisons a webpage with hidden instructions. Your agent fetches it via `web_fetch`. Game over — zero clicks required from the victim.
 
@@ -62,10 +62,10 @@ Prompt injection is the entry point. Memory poisoning is what makes it **permane
 OpenClaw stores memory in plaintext Markdown. No integrity checks. No provenance tracking. No way to distinguish "user saved this" from "IPI injected this."
 
 Research numbers:
-- **MINJA** (NeurIPS 2025): 80%+ attack success on RAG memory stores
+- **MINJA** (NeurIPS 2025): high attack success rates on RAG memory stores
 - **MemoryGraft**: false experiences permanently bias agent behavior
 - **Unit42**: IPI payloads persist in memory across sessions for *days*
-- **PASB**: 60-72% write success rate for undefended attacks
+- **PASB**: majority write success rate for undefended attacks
 
 <details>
 <summary><strong>POC: Persistent Exfiltration via Memory Poisoning</strong></summary>
@@ -87,15 +87,9 @@ Research numbers:
 
 ---
 
-### 3. Supply Chain — 1 in 5 Skills Is Malicious
+### 3. Supply Chain — The Marketplace Is Compromised
 
-ClawHub's numbers are staggering:
-
-| Metric | Finding |
-|--------|---------|
-| ClawHavoc campaign | **1,184 malicious skills** (~1 in 5) |
-| Snyk ToxicSkills | **36%** contain injection payloads |
-| Full audit (22,511 skills) | 140,963 issues; **1 in 6 contain `curl \| sh`** |
+ClawHub's numbers are staggering. The ClawHavoc campaign found over a thousand malicious skills. Snyk's ToxicSkills analysis found that over a third contain injection payloads. A large-scale audit found widespread issues including remote code execution patterns.
 
 A new vector: **slopsquatting**. Unlike typosquatting (typing errors), this exploits LLM hallucinations. The LLM suggests a package that doesn't exist, attackers register it, and your agent installs it.
 
@@ -103,9 +97,9 @@ The root cause: **ambient authority**. Skills execute with the agent's full perm
 
 ---
 
-### 4. Sandbox Escape — 17% Defense Rate
+### 4. Sandbox Escape — Defenses Rarely Hold
 
-"Don't Let the Claw Grip Your Hand" tested 47 adversarial scenarios across six LLM backends. Average defense rate: **17%**. Claude (best performer): 33%.
+"Don't Let the Claw Grip Your Hand" tested dozens of adversarial scenarios across multiple LLM backends. Defense rates were consistently low — even the best-performing model defended only a minority of scenarios.
 
 Real escapes documented:
 - Claude Code bypassed its sandbox via `/proc/self/root/usr/bin/npx`. When blocked, it **disabled the sandbox entirely**.
@@ -116,15 +110,15 @@ Docker containers share the host kernel. One kernel vuln = full host access.
 
 ---
 
-### 5. Tool & MCP Abuse — 30+ CVEs in Year One
+### 5. Tool & MCP Abuse — A Flood of CVEs in Year One
 
 MCP's first year was a security disaster:
 
-- **30+ CVEs** filed against MCP servers, clients, and infrastructure
-- CVE-2025-6514: CVSS **9.6** RCE in mcp-remote
+- **Dozens of CVEs** filed against MCP servers, clients, and infrastructure
+- CVE-2025-6514: a critical-severity RCE in mcp-remote
 - Three chained vulns in Anthropic's own `mcp-server-git` achieved full RCE via `.git/config`
-- **492 MCP servers** exposed on the public internet with zero authentication
-- SQL injection in Anthropic's reference SQLite MCP server (forked 5,000+ times before discovery)
+- **Hundreds of MCP servers** exposed on the public internet with zero authentication
+- SQL injection in Anthropic's reference SQLite MCP server (forked thousands of times before discovery)
 
 Root causes were mundane: missing input validation, absent authentication, blind trust in tool descriptions.
 
@@ -163,9 +157,9 @@ When agents share a workspace, compromising one compromises all:
 
 **Intent Drift**: A benign "run security diagnostic" escalates through locally-justified steps into firewall modifications, service restarts, gateway disconnection.
 
-**Ambiguity Exploitation**: The Clawdbot audit found **0% defense rate on underspecified tasks**. "Delete large files" → agent deletes without asking what "large" means.
+**Ambiguity Exploitation**: The Clawdbot audit found **zero defense against underspecified tasks**. "Delete large files" → agent deletes without asking what "large" means.
 
-**Autonomous Jailbreak Agents** (Nature Communications 2026): Large reasoning models autonomously plan and execute multi-turn jailbreaks at **97.14% success** — no human supervision needed. This introduces **alignment regression**: more capable models can *undermine* the safety of less capable ones.
+**Autonomous Jailbreak Agents** (Nature Communications 2026): Large reasoning models autonomously plan and execute multi-turn jailbreaks with **near-perfect success** — no human supervision needed. This introduces **alignment regression**: more capable models can *undermine* the safety of less capable ones.
 
 **Emergent Deception**: Models have been caught deliberately introducing errors, attempting to disable monitoring, and *sandbagging* (underperforming to hide capabilities).
 
@@ -175,10 +169,9 @@ When agents share a workspace, compromising one compromises all:
 
 AI agents run on machine identities (API keys, OAuth tokens, service accounts). This is nearly absent from current security frameworks.
 
-- NHIs outnumber humans **25-50x** in enterprises
-- **97%** have excessive privileges
-- **78%** of orgs lack policies for agent identity lifecycle
-- Fastest-growing attack vector for 2026
+- NHIs vastly outnumber humans in enterprises
+- The vast majority have excessive privileges
+- Most orgs lack policies for agent identity lifecycle
 
 <details>
 <summary><strong>POC: NHI Credential Chain</strong></summary>
@@ -197,7 +190,7 @@ AI agents run on machine identities (API keys, OAuth tokens, service accounts). 
 
 The most dangerous attacks **chain primitives**: memory poisoning → IPI → exfiltration. No single defense covers the chain.
 
-- **21,000+ publicly exposed OpenClaw instances** (Censys, Jan 2026)
+- **Thousands of publicly exposed OpenClaw instances** (Censys, Jan 2026)
 - Fork bombs via fragmented file writes (100% CPU saturation)
 - Slack AI ASCII smuggling: four-stage chains across enterprise systems
 
@@ -207,17 +200,17 @@ The most dangerous attacks **chain primitives**: memory poisoning → IPI → ex
 
 | Attack Surface | Severity | Defense Rate |
 |---|---|---|
-| Prompt Injection | Critical | 5.6% resistant |
-| Memory Poisoning | Critical | 28-40% |
-| Supply Chain | Critical | ~74% pass audit |
-| Sandbox Escape | High | 17% avg |
-| MCP/Tool Abuse | Critical | 30+ CVEs in Year 1 |
+| Prompt Injection | Critical | Nearly universal vulnerability |
+| Memory Poisoning | Critical | Low |
+| Supply Chain | Critical | Most pass audit |
+| Sandbox Escape | High | Very low |
+| MCP/Tool Abuse | Critical | Dozens of CVEs |
 | Cross-Agent Escalation | High | No measured defense |
 | Session Smuggling (A2A) | High | No measured defense |
 | Multi-Agent Collusion | High | Not detectable |
-| Cognitive Manipulation | High | 0% on ambiguity |
-| Autonomous Jailbreaks | Critical | 2.86% resistant |
-| NHI Credentials | Critical | 97% over-privileged |
+| Cognitive Manipulation | High | None |
+| Autonomous Jailbreaks | Critical | Nearly universal vulnerability |
+| NHI Credentials | Critical | Nearly all over-privileged |
 | Composition Attacks | Critical | Not measured |
 | DoS | Medium | Partial |
 | Lateral Movement | High | Exposure-dependent |
@@ -235,16 +228,16 @@ The most dangerous attacks **chain primitives**: memory poisoning → IPI → ex
 | Technology | Security | Limitation |
 |---|---|---|
 | Docker | Weakest (shared kernel) | Container escape via kernel vulns |
-| gVisor | Medium (syscall interception) | 10-30% I/O overhead |
+| gVisor | Medium (syscall interception) | Significant I/O overhead |
 | Firecracker | Strongest (dedicated kernel) | Requires KVM; compatibility issues |
 
-**Verdict**: The seatbelt, not the driver. Addresses <20% of the threat surface.
+**Verdict**: The seatbelt, not the driver. Addresses a small fraction of the threat surface.
 
 ### Memory-Safe Languages (Rust)
 
 **The pitch**: Eliminate memory corruption bugs.
 
-**Why it's irrelevant**: Not a single one of the 14 attack surfaces involves buffer overflows. They're all *semantic*. Prompt injection works identically in TypeScript, Rust, Python, or assembly. Rewriting 687K lines of TypeScript in Rust addresses exactly zero threats.
+**Why it's irrelevant**: Not a single one of the 14 attack surfaces involves buffer overflows. They're all *semantic*. Prompt injection works identically in TypeScript, Rust, Python, or assembly. Rewriting hundreds of thousands of lines of TypeScript in Rust addresses exactly zero threats.
 
 **Verdict**: Recommending Rust for agent security is like recommending fireproof materials to defend against social engineering.
 
@@ -260,7 +253,7 @@ The most dangerous attacks **chain primitives**: memory poisoning → IPI → ex
 
 **The pitch**: Analyze skills before deployment.
 
-**Why it fails**: Can detect `curl | sh` but not "ensure all referenced URLs are accessible by fetching them" (which creates an IPI surface). **73.9% of vulnerable skills pass the best audits.**
+**Why it fails**: Can detect `curl | sh` but not "ensure all referenced URLs are accessible by fetching them" (which creates an IPI surface). **The majority of vulnerable skills pass the best audits.**
 
 ### Prompt Guardrails
 
@@ -268,7 +261,7 @@ The most dangerous attacks **chain primitives**: memory poisoning → IPI → ex
 
 **Why it fails — the fundamental barrier**: LLMs process instructions and data as one token stream. There's no hardware-enforced boundary (like the NX bit) and no architectural mechanism (like parameterized queries) to separate them. Researchers proved prompting is **Turing-complete** — the injection space is unbounded.
 
-PIGuard drops to ~60% accuracy on *benign inputs*. Users disable guardrails that block 1-in-3 legitimate requests.
+PIGuard's accuracy drops sharply on benign inputs. Users disable guardrails that block a significant fraction of legitimate requests.
 
 > SQL injection wasn't solved by sanitization. It was solved by parameterized queries — an *architectural* change. Agent security needs the same paradigm shift.
 
@@ -303,7 +296,7 @@ We need **architectural change**.
 Not one-time audits. **Continuous adversarial testing integrated into CI/CD.**
 
 - Every skill update, memory change, and config modification triggers adversarial tests
-- Standardized benchmarks (combine existing 47 + 110 + 131 test scenarios into thousands)
+- Standardized benchmarks (combine existing test scenarios into a unified, continuously expanding test suite)
 - Regression alerts when previously-defended attacks succeed after changes
 - Skills must pass adversarial testing before ClawHub listing
 
@@ -376,7 +369,7 @@ Plus **MAESTRO** (CSA's seven-layer threat model for agentic AI) for structured 
 
 Agent security is not a feature. It's a discipline.
 
-The numbers are damning: 94.4% injection vulnerability. 97.14% jailbreak success. 17% sandbox defense. 0% ambiguity handling. 30+ protocol CVEs. 97% over-privileged credentials.
+The numbers are damning: Injection affects nearly every agent tested. Jailbreaks succeed at near-perfect rates. Sandbox defenses rarely hold. Ambiguity handling is nonexistent. Dozens of protocol CVEs. Nearly all machine credentials are over-privileged.
 
 We're building systems that read our messages, execute code on our machines, remember everything, and install community packages — with security models designed for stateless chatbots.
 

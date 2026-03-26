@@ -59,36 +59,28 @@ title: OpenClaw Security Research
 
 ## What 14 Attack Surfaces Teach Us About AI Agent Security
 
-A comprehensive analysis of OpenClaw — 687K lines of TypeScript powering autonomous agents — revealing why sandboxing, guardrails, Rust, and LLM auditing all fall short.
+A comprehensive analysis of OpenClaw — a large-scale TypeScript codebase powering autonomous agents — revealing why sandboxing, guardrails, Rust, and LLM auditing all fall short.
 
 </hero>
 
 <div class="hero-stats">
   <div class="hero-stat">
-    <div class="num">94.4%</div>
-    <div class="lbl">Agents vulnerable to prompt injection</div>
+    <div class="num">14</div>
+    <div class="lbl">Distinct attack surfaces surveyed</div>
   </div>
   <div class="hero-stat">
-    <div class="num">97.1%</div>
-    <div class="lbl">Jailbreak success by reasoning models</div>
+    <div class="num">7</div>
+    <div class="lbl">Defense categories evaluated</div>
   </div>
   <div class="hero-stat">
-    <div class="num">17%</div>
-    <div class="lbl">Survive sandbox escape attempts</div>
-  </div>
-  <div class="hero-stat">
-    <div class="num">30+</div>
-    <div class="lbl">MCP CVEs in year one</div>
-  </div>
-  <div class="hero-stat">
-    <div class="num">0%</div>
-    <div class="lbl">Defend ambiguous instructions</div>
+    <div class="num">0</div>
+    <div class="lbl">Defenses with deterministic guarantees</div>
   </div>
 </div>
 
 <div class="cta-section">
 <p>
-We surveyed 14 attack surfaces, evaluated 7 defense categories, and analyzed incidents through March 2026. No single defense covers even half the threats. No defense provides deterministic guarantees. Every defense has documented bypasses.
+We surveyed fourteen attack surfaces, evaluated seven defense categories, and analyzed real-world incidents through March 2026. No single defense covers even half the threats. Every defense has documented bypasses.
 </p>
 
 [Read the Position Paper →](/paper/)
