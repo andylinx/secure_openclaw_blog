@@ -941,6 +941,292 @@
 }
 
 /* ============================================
+   LIGHT THEME OVERRIDES
+   ============================================ */
+
+/* --- Section Hero --- */
+:not(.dark) .section-hero {
+  background: linear-gradient(135deg, rgba(229,62,62,0.06) 0%, rgba(246,173,85,0.03) 100%);
+  border-color: rgba(229,62,62,0.2);
+}
+
+:not(.dark) .section-hero p {
+  color: #4a5568;
+}
+
+/* --- Threat Cards --- */
+:not(.dark) .threat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .threat-card:hover {
+  border-color: rgba(229,62,62,0.35);
+  box-shadow: 0 4px 24px rgba(229,62,62,0.08);
+}
+
+:not(.dark) .threat-card-title h4 {
+  color: #1a202c !important;
+}
+
+:not(.dark) .threat-card-title .threat-subtitle {
+  color: #718096;
+}
+
+:not(.dark) .threat-stat-bar {
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .threat-stat-item {
+  border-right-color: #e2e8f0;
+  background: rgba(247,250,252,0.8);
+}
+
+:not(.dark) .threat-stat-item .ts-label {
+  color: #718096;
+}
+
+:not(.dark) .threat-card-body {
+  color: #4a5568;
+}
+
+:not(.dark) .threat-card-body strong {
+  color: #1a202c;
+}
+
+:not(.dark) .threat-card-body code {
+  color: #c53030;
+  background: rgba(229,62,62,0.08);
+}
+
+/* --- Defense Cards --- */
+:not(.dark) .defense-card {
+  background: linear-gradient(135deg, #ffffff, #f7fafc);
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .defense-card:hover {
+  border-color: rgba(229,62,62,0.35);
+  box-shadow: 0 4px 24px rgba(229,62,62,0.08);
+}
+
+:not(.dark) .defense-card-header h4 {
+  color: #1a202c !important;
+}
+
+:not(.dark) .defense-card-body {
+  color: #4a5568;
+}
+
+:not(.dark) .defense-card-body strong {
+  color: #1a202c;
+}
+
+:not(.dark) .defense-card-footer {
+  border-top-color: #e2e8f0;
+}
+
+:not(.dark) .defense-card-footer .coverage {
+  color: #718096;
+}
+
+:not(.dark) .defense-card-footer .bypass {
+  color: #c53030;
+}
+
+/* --- Pillar Cards --- */
+:not(.dark) .pillar-card {
+  background: linear-gradient(135deg, #ffffff, #f0fff4);
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .pillar-card:hover {
+  border-color: rgba(56,161,105,0.35);
+  box-shadow: 0 4px 24px rgba(56,161,105,0.08);
+}
+
+:not(.dark) .pillar-card-header h4 {
+  color: #1a202c !important;
+}
+
+:not(.dark) .pillar-card-body {
+  color: #4a5568;
+}
+
+:not(.dark) .pillar-card-body strong {
+  color: #1a202c;
+}
+
+:not(.dark) .pillar-card-body code {
+  color: #276749;
+  background: rgba(72,187,120,0.1);
+}
+
+/* --- Key Insight --- */
+:not(.dark) .key-insight {
+  background: linear-gradient(135deg, rgba(229,62,62,0.05) 0%, rgba(246,173,85,0.03) 100%);
+}
+
+:not(.dark) .key-insight p {
+  color: #1a202c;
+}
+
+:not(.dark) .key-insight strong {
+  color: #c53030;
+}
+
+/* --- Threat Group --- */
+:not(.dark) .threat-group-header {
+  border-bottom-color: rgba(229,62,62,0.15);
+}
+
+:not(.dark) .threat-group-header h3 {
+  color: #1a202c !important;
+}
+
+:not(.dark) .threat-group-header .tg-count {
+  color: #718096;
+  background: rgba(113,128,150,0.1);
+}
+
+/* --- Verdict Badges --- */
+:not(.dark) .verdict-badge.fails {
+  background: rgba(229,62,62,0.1);
+  color: #c53030;
+  border-color: rgba(229,62,62,0.25);
+}
+
+:not(.dark) .verdict-badge.partial {
+  background: rgba(221,107,32,0.1);
+  color: #c05621;
+  border-color: rgba(221,107,32,0.25);
+}
+
+:not(.dark) .verdict-badge.irrelevant {
+  background: rgba(113,128,150,0.1);
+  color: #718096;
+  border-color: rgba(113,128,150,0.25);
+}
+
+/* --- Analogy Box --- */
+:not(.dark) .analogy-box {
+  background: rgba(66,153,225,0.05);
+  border-color: rgba(66,153,225,0.2);
+}
+
+:not(.dark) .analogy-box p {
+  color: #4a5568;
+}
+
+:not(.dark) .analogy-box strong {
+  color: #2b6cb0;
+}
+
+/* --- Scoreboard --- */
+:not(.dark) .score-item {
+  background: #f7fafc;
+  border-color: #e2e8f0;
+}
+
+:not(.dark) .score-item:hover {
+  border-color: rgba(229,62,62,0.25);
+}
+
+:not(.dark) .score-name {
+  color: #1a202c;
+}
+
+:not(.dark) .score-rate {
+  color: #c53030;
+}
+
+/* --- Lifecycle Flow --- */
+:not(.dark) .ls-cell {
+  background: rgba(247,250,252,0.9);
+  color: #4a5568;
+}
+
+:not(.dark) .ls-cell strong {
+  color: #1a202c;
+}
+
+:not(.dark) .ls-header .ls-content .ls-cell {
+  color: #718096;
+}
+
+/* --- References --- */
+:not(.dark) .ref-section h3 {
+  color: #718096 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+:not(.dark) .ref-item {
+  border-bottom-color: rgba(226,232,240,0.6);
+}
+
+:not(.dark) .ref-num {
+  background: rgba(229,62,62,0.06);
+  border-color: rgba(229,62,62,0.15);
+  color: #c53030;
+}
+
+:not(.dark) .ref-text {
+  color: #4a5568;
+}
+
+:not(.dark) .ref-text a {
+  color: #2b6cb0;
+}
+
+/* --- Details/Collapsible --- */
+:not(.dark) .vp-doc details {
+  background: linear-gradient(135deg, rgba(229,62,62,0.04) 0%, rgba(246,173,85,0.02) 100%);
+  border: 1px solid rgba(229,62,62,0.15);
+  border-radius: 8px;
+  padding: 0;
+  margin: 16px 0;
+}
+
+:not(.dark) .vp-doc details:hover {
+  border-color: rgba(229,62,62,0.3);
+}
+
+:not(.dark) .vp-doc details[open] {
+  border-color: rgba(229,62,62,0.25);
+  background: linear-gradient(135deg, rgba(229,62,62,0.06) 0%, rgba(246,173,85,0.03) 100%);
+}
+
+:not(.dark) .vp-doc summary {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #c53030;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+}
+
+:not(.dark) .vp-doc summary::-webkit-details-marker { display: none; }
+
+:not(.dark) .vp-doc summary::before {
+  content: '\25B6';
+  font-size: 0.7em;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+:not(.dark) .vp-doc details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+:not(.dark) .vp-doc summary:hover { color: #e53e3e; }
+
+:not(.dark) .vp-doc details > :not(summary) { padding: 0 20px; }
+:not(.dark) .vp-doc details > :last-child { padding-bottom: 16px; }
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
@@ -951,7 +1237,7 @@
 
   .threat-stat-item {
     border-right: none;
-    border-bottom: 1px solid #21262d;
+    border-bottom: 1px solid var(--vp-c-divider, #21262d);
   }
 
   .threat-stat-item:last-child { border-bottom: none; }
