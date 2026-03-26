@@ -55,11 +55,11 @@ title: OpenClaw Security Research
 
 <hero>
 
-# Every Defense Fails
+# Securing OpenClaw
 
-## What 14 Attack Surfaces Teach Us About AI Agent Security
+## 14 Attack Surfaces, 8 Defense Categories, and the Frameworks Bringing Them Together
 
-A comprehensive analysis of OpenClaw — a large-scale TypeScript codebase powering autonomous agents — revealing why sandboxing, guardrails, Rust, and LLM auditing all fall short.
+A comprehensive analysis of OpenClaw — a large-scale TypeScript codebase powering autonomous agents — surveying every major defense mechanism, what each protects, and how integrated frameworks like ClawKeeper, PRISM, and lifecycle-spanning architectures are closing the gaps.
 
 </hero>
 
@@ -69,18 +69,18 @@ A comprehensive analysis of OpenClaw — a large-scale TypeScript codebase power
     <div class="lbl">Distinct attack surfaces surveyed</div>
   </div>
   <div class="hero-stat">
-    <div class="num">7</div>
+    <div class="num">8</div>
     <div class="lbl">Defense categories evaluated</div>
   </div>
   <div class="hero-stat">
-    <div class="num">0</div>
-    <div class="lbl">Defenses with deterministic guarantees</div>
+    <div class="num">5</div>
+    <div class="lbl">Integrated defense frameworks analyzed</div>
   </div>
 </div>
 
 <div class="cta-section">
 <p>
-We surveyed fourteen attack surfaces, evaluated seven defense categories, and analyzed real-world incidents through March 2026. No single defense covers even half the threats. Every defense has documented bypasses.
+We surveyed fourteen attack surfaces, evaluated eight defense categories, and analyzed five integrated security frameworks — including ClawKeeper, PRISM, and the "Taming OpenClaw" lifecycle architecture. No single defense is enough, but combined frameworks achieve 70-95% defense rates on known attacks. Three fundamental gaps remain.
 </p>
 
 [Read the Position Paper →](/paper/)
