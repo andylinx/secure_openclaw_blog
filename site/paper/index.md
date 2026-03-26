@@ -16,9 +16,9 @@ outline: [2, 3]
 
 ## Abstract
 
-OpenClaw is a tool-using, persistent, multi-channel AI agent platform — a large-scale TypeScript codebase powering autonomous agents that read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. It represents the future of personal AI assistants. It also represents a security nightmare that existing defenses are fundamentally inadequate to address.
+OpenClaw is a tool-using, persistent, multi-channel AI agent platform — an autonomous agents that read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. It represents the future of personal AI assistants. It also represents a security nightmare that existing defenses are fundamentally inadequate to address.
 
-This paper makes three contributions. First, we survey **fourteen attack surfaces** specific to agentic AI systems — including newly identified threats such as non-human identity credential attacks, agent session smuggling via the A2A protocol, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, and the MCP CVE explosion — grounding each in empirical evidence from concurrent security research and real-world incidents through March 2026. Second, we evaluate **seven categories of existing defenses** — sandboxing, memory-safe languages, runtime detection, static audit, prompt guardrails, LLM-based auditing, and emerging enterprise platforms — and demonstrate why each one fails in isolation, with specific failure modes and proof-of-concept examples. Third, we argue that securing agentic infrastructure requires not incremental patching but **architectural redesign**: principled instruction-data separation, capability-based access control, NHI lifecycle management, inter-agent protocol security, continuous automated red-teaming, and defense-in-depth spanning the entire agent lifecycle — aligned with emerging regulatory frameworks including the EU AI Act, ISO/IEC 42001, and the NIST AI Agent Standards Initiative.
+This paper makes three contributions. First, we survey **fourteen attack surfaces** specific to agentic AI systems — including newly identified threats such as non-human identity credential attacks, agent session smuggling via the A2A protocol, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, and the MCP CVE explosion — grounding each in empirical evidence from concurrent security research and real-world incidents through March 2026. Second, we evaluate **seven categories of existing defenses** — sandboxing, memory-safe languages, runtime detection, static audit, prompt guardrails, LLM-based auditing, and emerging enterprise platforms — and demonstrate why each one fails in isolation, with specific failure modes and proof-of-concept examples. Third, we argue that securing agentic infrastructure requires not incremental patching but **architectural redesign**: principled instruction-data separation, capability-based access control, NHI lifecycle management, inter-agent protocol security, continuous automated red-teaming, and defense-in-depth spanning the entire agent lifecycle.
 
 ---
 
@@ -82,7 +82,7 @@ We organize our threat analysis using the **five-layer lifecycle framework** fro
 
 **Indirect Prompt Injection (IPI)** is far more dangerous. First demonstrated by Greshake et al. <a href="#ref-1">[1]</a> at BlackHat 2023, IPI embeds adversarial instructions in external content that the agent retrieves — web pages, emails, documents, API responses, even image metadata. The attack requires no direct interaction with the victim: the attacker poisons a webpage, and when the agent fetches it via `web_fetch`, the embedded instructions hijack the agent's behavior.
 
-The empirical evidence is alarming: **the vast majority** of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks achieve consistent success against multiple IPI defense mechanisms <a href="#ref-8">[8]</a>, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
+The empirical evidence is alarming: **the vast majority** of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks achieve consistent success against multiple IPI defense mechanisms, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
 
 OpenClaw's defense? XML tags (`<external-content>`) around fetched content. A convention the LLM can be convinced to ignore.
 
@@ -216,8 +216,8 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
   <h3>The Persistence Layer</h3>
   <span class="tg-count">How attacks survive and spread</span>
 </div>
-
 <!-- MEMORY POISONING -->
+
 <div class="threat-card">
 <div class="threat-card-header">
   <div class="threat-icon critical">🧠</div>
@@ -453,72 +453,8 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 </div>
 
----
 
-## The Scoreboard
 
-<div class="scoreboard">
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">Prompt Injection</span>
-    <span class="score-rate">Nearly universal</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">Memory Poisoning</span>
-    <span class="score-rate">Low</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">Supply Chain</span>
-    <span class="score-rate">Most pass</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot high"></span>
-    <span class="score-name">Sandbox Escape</span>
-    <span class="score-rate">Very low</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">MCP/Tool Abuse</span>
-    <span class="score-rate">Dozens of CVEs</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot high"></span>
-    <span class="score-name">Cross-Agent Escalation</span>
-    <span class="score-rate">No defense</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot high"></span>
-    <span class="score-name">Session Smuggling (A2A)</span>
-    <span class="score-rate">No defense</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot high"></span>
-    <span class="score-name">Multi-Agent Collusion</span>
-    <span class="score-rate">Undetectable</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot high"></span>
-    <span class="score-name">Cognitive Manipulation</span>
-    <span class="score-rate">None</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">Autonomous Jailbreaks</span>
-    <span class="score-rate">Nearly universal</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">NHI Credentials</span>
-    <span class="score-rate">Nearly all</span>
-  </div>
-  <div class="score-item">
-    <span class="score-dot critical"></span>
-    <span class="score-name">Composition Attacks</span>
-    <span class="score-rate">Not measured</span>
-  </div>
-</div>
 
 ---
 
@@ -544,22 +480,6 @@ Docker, gVisor, Firecracker — isolate code execution in containers or micro-VM
 <div class="defense-card-footer">
   <span class="coverage">Covers: #4, #9 partial</span>
   <span class="bypass">Kernel exploits, /proc escape</span>
-</div>
-</div>
-
-<div class="defense-card">
-<div class="defense-card-header">
-  <h4>🦀 Memory-Safe Languages</h4>
-  <span class="verdict-badge irrelevant">Irrelevant</span>
-</div>
-<div class="defense-card-body">
-
-Rust eliminates buffer overflows and use-after-free. **Not a single attack surface involves memory corruption.** They're all semantic — prompt injection works identically in TypeScript, Rust, Python, or assembly. Rewriting hundreds of thousands of lines of TypeScript in Rust addresses **zero** of fourteen attack surfaces.
-
-</div>
-<div class="defense-card-footer">
-  <span class="coverage">Covers: none of the 14</span>
-  <span class="bypass">Orthogonal to agent threats</span>
 </div>
 </div>
 
@@ -645,9 +565,6 @@ Microsoft Agent 365 <a href="#ref-37">[37]</a> and Cisco Zero Trust <a href="#re
 
 </div>
 
-<div class="key-insight">
-<p><strong>The SQL Injection Analogy</strong> — SQL injection wasn't solved by sanitization. It was solved by <strong>parameterized queries</strong> — an <em>architectural</em> change that structurally separates code from data. Agent security needs the same paradigm shift. We're in the "input sanitization" era, and the industry hasn't built its parameterized queries yet.</p>
-</div>
 
 ---
 
@@ -803,25 +720,6 @@ Map all defenses to the five-layer lifecycle from "Taming OpenClaw" <a href="#re
 </div>
 
 **Cross-stage invariants** are verified continuously, not audited periodically. PRISM's 10 lifecycle hooks <a href="#ref-4">[4]</a> provide a starting framework, extended with formal verification of invariant preservation.
-
-</div>
-</div>
-
-<!-- PILLAR 5 -->
-<div class="pillar-card">
-<div class="pillar-card-header">
-  <div class="pillar-number">5</div>
-  <h4>Regulatory Alignment</h4>
-</div>
-<div class="pillar-card-body">
-
-Three frameworks converging on mandatory requirements for autonomous AI:
-
-- **EU AI Act** <a href="#ref-40">[40]</a> — GPAI obligations effective Aug 2025, Commission enforcement from Aug 2026
-- **ISO/IEC 42001** <a href="#ref-41">[41]</a> — the world's first AI management system standard
-- **NIST AI Agent Standards Initiative** <a href="#ref-42">[42]</a> — launched Feb 2026, seeking practices for secure agent deployment
-
-Plus **MAESTRO** <a href="#ref-39">[39]</a> (CSA's seven-layer threat model for agentic AI) for structured threat analysis. Compliance will become a prerequisite for enterprise adoption.
 
 </div>
 </div>
