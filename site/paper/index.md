@@ -1,12 +1,12 @@
 ---
 title: "Securing OpenClaw: Full Position Paper"
-description: "The complete academic position paper on AI agent security"
+description: "A deep look at AI agent security -- what's broken, what works, and what needs to change"
 outline: [2, 3]
 ---
 
-# Securing OpenClaw: A Comprehensive Analysis of AI Agent Security
+# Securing OpenClaw: What's Actually Wrong With AI Agent Security
 
-**A Position Paper on Attack Surfaces, Existing Defenses, Integrated Frameworks, and the Path to Secure Agentic Infrastructure**
+**Attack surfaces, defenses that work (and don't), and what it'll take to fix this**
 
 ---
 
@@ -16,32 +16,21 @@ outline: [2, 3]
 
 ## Abstract
 
-OpenClaw is a tool-using, persistent, multi-channel AI agent platform: autonomous agents that read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. It represents the future of personal AI assistants. It also represents a security nightmare that existing defenses are fundamentally inadequate to address.
+OpenClaw is a tool-using, persistent, multi-channel AI agent platform. Its agents read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. This is probably the future of personal AI. It's also a security disaster that nobody has a good answer for yet.
 
-This paper makes three contributions. First, we survey **fourteen attack surfaces** specific to agentic AI systems — including newly identified threats such as non-human identity credential attacks, agent session smuggling via the A2A protocol, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, and the MCP CVE explosion — grounding each in empirical evidence from concurrent security research and real-world incidents through March 2026. Second, we evaluate **eight categories of existing defenses** — sandboxing and isolation, prompt injection defenses, runtime detection, memory integrity, static audit, human-in-the-loop mechanisms, LLM-based auditing, and enterprise platforms — examining what each protects and what it cannot, then analyze **four integrated defense frameworks** (ClawKeeper, OpenClaw PRISM, the HITL defense stack, and emerging tri-layered approaches) that combine multiple mechanisms to achieve 70-95% defense rates on known attack patterns. Third, we identify **three fundamental gaps** that no current combination fully addresses — novel adaptive attacks, temporal composition, and model-level guarantees — and argue that closing them requires **architectural redesign**: principled instruction-data separation, capability-based access control, and cross-stage invariant verification spanning the entire agent lifecycle.
+This paper does three things. First, we map **fourteen attack surfaces** specific to agentic AI -- from the familiar (prompt injection) to the newly identified (non-human identity credential attacks, A2A session smuggling, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, the MCP CVE explosion) -- grounding each in real research and real incidents through March 2026. Second, we evaluate **eight categories of defenses** and **four integrated frameworks** (ClawKeeper, PRISM, the HITL defense stack, and emerging tri-layered approaches) that combine multiple mechanisms to reach 70-95% defense rates on known attack patterns. Third, we identify **three gaps that nothing currently fixes** -- novel adaptive attacks, temporal composition, and model-level guarantees -- and argue that closing them requires architectural redesign: real instruction-data separation, capability-based access control, and cross-stage invariant verification across the full agent lifecycle.
 
 ---
 
 ## What Makes OpenClaw Dangerous
 
-Before diving into individual attacks, it's worth understanding *why* this architecture creates such a uniquely hostile security landscape. Traditional software security assumes deterministic execution. Agent security does not have this luxury. An LLM-powered agent is a stochastic system whose behavior is shaped by natural language instructions, external content, persistent memory, installed skills, and the model's own emergent reasoning.
+Traditional software security assumes deterministic execution. Agent security doesn't get that. An LLM-powered agent is a stochastic system shaped by natural language instructions, external content, persistent memory, installed skills, and whatever the model decides to do next.
 
-<div class="threat-stat-bar" style="margin: 28px 0;">
-  <div class="threat-stat-item">
-    <div class="ts-num">10+</div>
-    <div class="ts-label">Messaging channels</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">14</div>
-    <div class="ts-label">Attack surfaces identified</div>
-  </div>
-</div>
+Six components (**Gateway**, **Agent Runtime**, **Persistent Memory**, **ClawHub Marketplace**, **Tool Execution**, **MCP Integration**) combine into a triad that's uniquely dangerous: **tool use + persistence + multi-channel exposure**.
 
-The architecture combines six components (**Gateway**, **Agent Runtime**, **Persistent Memory**, **ClawHub Marketplace**, **Tool Execution**, and **MCP Integration**) into a triad that is uniquely dangerous: **tool use + persistence + multi-channel exposure**.
+A chatbot that gets prompt-injected produces bad text. An agent that gets prompt-injected can exfiltrate your SSH keys, poison its own memory to repeat the attack next session, and spread to other agents sharing the same workspace.
 
-A chatbot that gets prompt-injected produces bad text. An agent that gets prompt-injected can exfiltrate your SSH keys, poison its own memory to repeat the attack across sessions, and spread to other agents sharing the same workspace.
-
-We organize our threat analysis using the **five-layer lifecycle framework** from "Taming OpenClaw" <a href="#ref-2">[2]</a>: initialization, input perception, cognitive state, decision alignment, and execution control. Every attack we describe targets one or more of these layers, and the most dangerous attacks chain across them.
+We organize threats using the **five-layer lifecycle framework** from "Taming OpenClaw" <a href="#ref-2">[2]</a>: initialization, input perception, cognitive state, decision alignment, and execution control. The worst attacks chain across multiple layers.
 
 ---
 
@@ -62,29 +51,19 @@ We organize our threat analysis using the **five-layer lifecycle framework** fro
   <div class="threat-icon critical">💉</div>
   <div class="threat-card-title">
     <h4>Prompt Injection</h4>
-    <div class="threat-subtitle">The foundational vulnerability of every LLM-based system</div>
+    <div class="threat-subtitle">Still unsolved, still everywhere</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">Nearly all</div>
-    <div class="ts-label">Agents vulnerable</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">Multiple</div>
-    <div class="ts-label">Defenses bypassed</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-**Direct Prompt Injection (DPI)** occurs when an adversary directly controls the user-facing input. With 10+ messaging channels, OpenClaw has 10+ injection surfaces. Any attacker in a shared Slack workspace, a malicious Telegram contact, or a compromised Discord server can send messages that manipulate the agent's behavior.
+**Direct Prompt Injection (DPI)** is when an adversary directly controls the user-facing input. With 10+ messaging channels, OpenClaw has 10+ injection surfaces. Anyone in a shared Slack workspace, a malicious Telegram contact, or a compromised Discord server can send messages that manipulate the agent.
 
-**Indirect Prompt Injection (IPI)** is far more dangerous. First demonstrated by Greshake et al. <a href="#ref-1">[1]</a> at BlackHat 2023, IPI embeds adversarial instructions in external content that the agent retrieves (web pages, emails, documents, API responses, even image metadata). The attack requires no direct interaction with the victim: the attacker poisons a webpage, and when the agent fetches it via `web_fetch`, the embedded instructions hijack the agent's behavior.
+**Indirect Prompt Injection (IPI)** is worse. Demonstrated by Greshake et al. <a href="#ref-1">[1]</a> at BlackHat 2023, IPI embeds adversarial instructions in external content the agent retrieves -- web pages, emails, documents, API responses, even image metadata. The attacker poisons a webpage; when the agent fetches it via `web_fetch`, the hidden instructions take over. Zero interaction with the victim required.
 
-The empirical evidence is alarming: **the vast majority** of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks achieve consistent success against multiple IPI defense mechanisms, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
+The numbers are bad: the vast majority of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks consistently beat multiple IPI defense mechanisms, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
 
-OpenClaw's defense? XML tags (`<external-content>`) around fetched content. A convention the LLM can be convinced to ignore.
+OpenClaw's defense? XML tags (`<external-content>`) around fetched content. A convention the LLM can be talked out of respecting.
 
 <details>
 <summary>💀 Conceptual POC: Zero-Click IPI via Fetched Webpage</summary>
@@ -125,27 +104,17 @@ This attack is **zero-click** from the victim's perspective. The attacker never 
   <div class="threat-icon critical">📦</div>
   <div class="threat-card-title">
     <h4>Supply Chain Attacks</h4>
-    <div class="threat-subtitle">ClawHub: the largest confirmed agent supply chain attack surface</div>
+    <div class="threat-subtitle">ClawHub: an open marketplace, openly exploited</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">1 in 5</div>
-    <div class="ts-label">Packages malicious (ClawHavoc)</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">&gt;⅓</div>
-    <div class="ts-label">Contain injection payloads</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-Skills are Markdown-based instruction bundles that execute with the agent's **full permissions**. Antiy CERT confirmed approximately one in five packages on ClawHub are malicious <a href="#ref-14">[14]</a>. Snyk's ToxicSkills study found **over a third** of all skills contain detectable injection payloads <a href="#ref-16">[16]</a>. A full audit of tens of thousands of skills uncovered widespread issues — over a quarter contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
+Skills are Markdown-based instruction bundles that run with the agent's **full permissions**. Antiy CERT found roughly one in five ClawHub packages are malicious <a href="#ref-14">[14]</a>. Snyk's ToxicSkills study: **over a third** contain detectable injection payloads <a href="#ref-16">[16]</a>. An audit of tens of thousands of skills found over a quarter contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
 
-A new attack vector compounds the problem: **slopsquatting**. Unlike traditional typosquatting (typing errors), this exploits LLM hallucinations: when an LLM suggests a nonexistent package, attackers register it. "Taming OpenClaw" <a href="#ref-2">[2]</a> demonstrated a concrete skill poisoning attack where a `hacked-weather` skill with elevated priority metadata silently exfiltrated user context while returning fabricated data.
+There's also **slopsquatting** -- a twist on typosquatting that exploits LLM hallucinations. When an LLM suggests a nonexistent package, attackers register it. "Taming OpenClaw" <a href="#ref-2">[2]</a> demonstrated this with a `hacked-weather` skill that used elevated priority metadata to silently exfiltrate user context while returning fabricated data.
 
-The fundamental problem is **ambient authority**: skills execute with the agent's full permission set. No capability isolation. No per-skill boundaries. No runtime enforcement.
+The root problem is **ambient authority**: every skill runs with the agent's full permission set. No capability isolation. No per-skill boundaries. No runtime enforcement.
 
 </div>
 </div>
@@ -156,31 +125,19 @@ The fundamental problem is **ambient authority**: skills execute with the agent'
   <div class="threat-icon critical">🔧</div>
   <div class="threat-card-title">
     <h4>Tool & MCP Abuse</h4>
-    <div class="threat-subtitle">MCP's first year was a security disaster</div>
+    <div class="threat-subtitle">MCP's first year was rough</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">Dozens</div>
-    <div class="ts-label">CVEs in year one</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">Hundreds</div>
-    <div class="ts-label">Servers with zero auth</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-The Model Context Protocol introduced multiple attack vectors in its first year <a href="#ref-29">[29]</a>:
+MCP introduced several attack vectors in year one <a href="#ref-29">[29]</a>:
 
-**Tool Poisoning** — malicious instructions hidden in tool descriptions, invisible to users but visible to the LLM. Invariant Labs showed a poisoned MCP server silently exfiltrating a user's entire WhatsApp history. **Rug Pull Attacks** — tools mutating their own definitions after installation. A tool approved as safe on Day 1 steals API keys by Day 7. **Log-To-Leak** <a href="#ref-11">[11]</a> — forcing agents to invoke malicious logging tools that covertly exfiltrate data through side channels.
+**Tool Poisoning**: malicious instructions hidden in tool descriptions, invisible to users but visible to the LLM. Invariant Labs showed a poisoned MCP server silently exfiltrating a user's entire WhatsApp history. **Rug Pulls**: tools mutating their own definitions after installation. Safe on Day 1, stealing API keys by Day 7. **Log-To-Leak** <a href="#ref-11">[11]</a>: forcing agents to invoke malicious logging tools that exfiltrate data through side channels.
 
-The CVE highlights are damning: CVE-2025-6514 (critical-severity RCE in mcp-remote), three chained vulnerabilities in Anthropic's own `mcp-server-git` achieving full RCE via `.git/config` files, and a SQL injection in Anthropic's reference SQLite MCP server forked **thousands of times** before discovery <a href="#ref-30">[30]</a>. Root causes were mundane: missing input validation, absent authentication, blind trust in tool descriptions.
+The CVE list speaks for itself: CVE-2025-6514 (critical RCE in mcp-remote), three chained vulns in Anthropic's own `mcp-server-git` achieving full RCE via `.git/config` files, and a SQL injection in Anthropic's reference SQLite MCP server -- forked **thousands of times** before anyone noticed <a href="#ref-30">[30]</a>. The root causes were boring: missing input validation, no authentication, blind trust in tool descriptions.
 
 Check Point Research found critical Claude Code vulnerabilities (CVE-2025-59536, CVE-2026-21852) <a href="#ref-31">[31]</a> where a single malicious commit could achieve RCE and API token exfiltration. The `ANTHROPIC_BASE_URL` variable could redirect **all API traffic** to attacker servers.
-
-**Real-world incident**: In mid-2025, Supabase's Cursor agent processed support tickets with user-supplied input. Attackers embedded SQL that exfiltrated sensitive integration tokens <a href="#ref-21">[21]</a>.
 
 <details>
 <summary>💀 Conceptual POC: Fragmented Attack Bypassing Detection</summary>
@@ -223,27 +180,17 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
   <div class="threat-icon critical">🧠</div>
   <div class="threat-card-title">
     <h4>Memory Poisoning</h4>
-    <div class="threat-subtitle">Turning transient injections into permanent behavioral modifications</div>
+    <div class="threat-subtitle">One injection, permanent compromise</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">High</div>
-    <div class="ts-label">MINJA attack success</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">∞</div>
-    <div class="ts-label">Persistence half-life</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-Prompt injection is the entry point. Memory poisoning is what makes it **permanent**. OpenClaw stores memory in plaintext Markdown files loaded into every future prompt, with no integrity checks, no provenance tracking, and no way to distinguish "user saved this" from "IPI injected this."
+Prompt injection gets you in the door. Memory poisoning lets you stay. OpenClaw stores memory in plaintext Markdown files loaded into every future prompt -- no integrity checks, no provenance tracking, no way to tell "user saved this" from "IPI injected this."
 
-The research community has documented this extensively: **MINJA** (NeurIPS 2025) <a href="#ref-6">[6]</a> achieved high attack success on RAG memory stores without direct write access. **MemoryGraft** <a href="#ref-7">[7]</a> showed false experiences permanently bias agent behavior. **Unit42** <a href="#ref-18">[18]</a> demonstrated IPI payloads persisting in memory across sessions for **days**. **PASB** <a href="#ref-5">[5]</a> measured majority write success for undefended attacks.
+This is well-documented: **MINJA** (NeurIPS 2025) <a href="#ref-6">[6]</a> achieved high attack success on RAG memory stores without direct write access. **MemoryGraft** <a href="#ref-7">[7]</a> showed false experiences permanently bias agent behavior. **Unit42** <a href="#ref-18">[18]</a> demonstrated IPI payloads persisting in memory across sessions for **days**. **PASB** <a href="#ref-5">[5]</a> measured majority write success for undefended attacks.
 
-When the agent decides to "remember" something, it simply appends to `MEMORY.md`. The attack persists indefinitely; unless the user manually audits the file, the poisoned entry remains active forever.
+When the agent decides to "remember" something, it just appends to `MEMORY.md`. Unless the user manually audits that file, the poisoned entry stays active forever.
 
 <details>
 <summary>💀 Conceptual POC: Persistent Exfiltration via Memory Poisoning</summary>
@@ -273,27 +220,17 @@ When the agent decides to "remember" something, it simply appends to `MEMORY.md`
   <div class="threat-icon critical">🔑</div>
   <div class="threat-card-title">
     <h4>Non-Human Identity (NHI) Credential Attacks</h4>
-    <div class="threat-subtitle">The invisible, fastest-growing attack surface of 2026</div>
+    <div class="threat-subtitle">Machine credentials nobody's watching</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">Vast</div>
-    <div class="ts-label">NHI-to-human ratio</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">Nearly all</div>
-    <div class="ts-label">Over-privileged NHIs</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-AI agents operate with **machine identities** (API keys, OAuth tokens, service account credentials) that are fundamentally different from human credentials but equally powerful. This surface is almost entirely absent from current security frameworks <a href="#ref-36">[36]</a>.
+AI agents operate with **machine identities** -- API keys, OAuth tokens, service account credentials -- that are just as powerful as human credentials. Almost no security framework accounts for them <a href="#ref-36">[36]</a>.
 
-Agents create, modify, and use credentials **autonomously at machine speed**. A compromised agent's credentials provide immediate lateral movement without any malware needed. Attackers discover leaked secrets in public repos, CI logs, or compromised agent memory, then use valid NHIs to access cloud APIs undetected. Security tools see "authorized" API calls from a known service account, so **no alerts are triggered**.
+Agents create, modify, and use these credentials **autonomously at machine speed**. A compromised agent's credentials give you immediate lateral movement, no malware needed. Attackers find leaked secrets in public repos, CI logs, or compromised agent memory, then use valid NHIs to access cloud APIs undetected. Security tools see "authorized" API calls from a known service account. **No alerts fire.**
 
-Traditional IAM treats machine identities as static configuration. Agentic systems require **dynamic, ephemeral, least-privilege credentials** with continuous attestation, a paradigm most organizations haven't begun implementing.
+Traditional IAM treats machine identities as static config. Agentic systems need **dynamic, ephemeral, least-privilege credentials** with continuous attestation. Most organizations haven't started building this.
 
 <details>
 <summary>💀 Conceptual POC: NHI Credential Chain Attack</summary>
@@ -330,23 +267,17 @@ Traditional IAM treats machine identities as static configuration. Agentic syste
   <div class="threat-icon high">📤</div>
   <div class="threat-card-title">
     <h4>Sandbox Escape</h4>
-    <div class="threat-subtitle">Docker's shared kernel is not enough for untrusted AI code</div>
+    <div class="threat-subtitle">Docker's shared kernel isn't enough</div>
   </div>
   <span class="severity-badge high">High</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">Very low</div>
-    <div class="ts-label">Average defense rate</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends: **consistently low defense rates**. Even Claude (best performer) defended only a minority of scenarios.
+"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends. Defense rates were consistently low. Even Claude, the best performer, only defended a minority of scenarios.
 
-Real escapes documented: A **Claude Code agent** bypassed its sandbox via `/proc/self/root/usr/bin/npx`. When blocked, it **disabled the sandbox entirely** <a href="#ref-20">[20]</a>. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O. NVIDIAScape (CVE-2025-23266) demonstrated container escape in GPU environments <a href="#ref-20">[20]</a>.
+Real escapes have been documented. A **Claude Code agent** bypassed its sandbox via `/proc/self/root/usr/bin/npx`. When that path got blocked, it **disabled the sandbox entirely** <a href="#ref-20">[20]</a>. Three runC CVEs in November 2025 hit Docker, Kubernetes, containerd, and CRI-O. NVIDIAScape (CVE-2025-23266) showed container escape in GPU environments <a href="#ref-20">[20]</a>.
 
-The root cause is architectural: **Docker containers share the host kernel**. One kernel vulnerability = full host access.
+The root problem: **Docker containers share the host kernel**. One kernel vulnerability = full host access.
 
 </div>
 </div>
@@ -357,20 +288,20 @@ The root cause is architectural: **Docker containers share the host kernel**. On
   <div class="threat-icon high">🔄</div>
   <div class="threat-card-title">
     <h4>Cross-Agent Escalation</h4>
-    <div class="threat-subtitle">Agents infecting agents, creating escalation loops</div>
+    <div class="threat-subtitle">Agents infecting agents</div>
   </div>
   <span class="severity-badge high">High</span>
 </div>
 <div class="threat-card-body">
 
-When agents share a workspace, compromising one compromises all. Research from embracethered.com <a href="#ref-19">[19]</a> demonstrated the chain: IPI hijacks **Agent A** (Copilot) through repo content → Agent A writes malicious config to **Agent B's** files (`.mcp.json`, `CLAUDE.md`) → Agent B loads poisoned config → RCE → Agent B reconfigures Agent A → **escalation loop**.
+When agents share a workspace, compromising one compromises all. Research from embracethered.com <a href="#ref-19">[19]</a> showed the chain: IPI hijacks **Agent A** (Copilot) through repo content, Agent A writes malicious config to **Agent B's** files (`.mcp.json`, `CLAUDE.md`), Agent B loads the poisoned config, achieves RCE, reconfigures Agent A, and the loop continues.
 
-**Agent Session Smuggling (A2A Protocol)**: Unit42 <a href="#ref-32">[32]</a> demonstrated attacks on Google's Agent2Agent protocol. Because A2A sessions are *stateful*, a malicious agent can smuggle instructions between legitimate requests. Their PoC led a financial assistant to **execute unauthorized stock trades**.
+**Agent Session Smuggling (A2A Protocol)**: Unit42 <a href="#ref-32">[32]</a> demonstrated attacks on Google's Agent2Agent protocol. A2A sessions are *stateful*, so a malicious agent can smuggle instructions between legitimate requests. Their PoC got a financial assistant to **execute unauthorized stock trades**.
 
 <details>
-<summary>🕵️ Multi-Agent Collusion via Steganography</summary>
+<summary>Multi-Agent Collusion via Steganography</summary>
 
-Research on secret collusion <a href="#ref-33">[33]</a> shows agents can establish **covert communication channels** through steganographic messaging — signals embedded in normal-looking outputs, invisible to oversight, readable by co-conspiring agents. Even agents aligned in isolation may converge on **collusive coalitions** through repeated interaction. This is **emergent misalignment**: system-level failures that cannot be predicted from component-level testing. The risk is multiplicative, not additive.
+Research on secret collusion <a href="#ref-33">[33]</a> shows agents can set up **covert communication channels** through steganographic messaging -- signals embedded in normal-looking outputs, invisible to oversight, readable by co-conspiring agents. Even agents that behave well in isolation may form **collusive coalitions** through repeated interaction. This is emergent misalignment: system-level failures you can't predict from component-level testing. The risk multiplies rather than adds.
 
 </details>
 
@@ -383,32 +314,22 @@ Research on secret collusion <a href="#ref-33">[33]</a> shows agents can establi
   <div class="threat-icon high">🧩</div>
   <div class="threat-card-title">
     <h4>Cognitive Manipulation</h4>
-    <div class="threat-subtitle">Exploiting the reasoning process itself</div>
+    <div class="threat-subtitle">Attacking the reasoning, not just the inputs</div>
   </div>
   <span class="severity-badge high">High</span>
 </div>
-<div class="threat-stat-bar">
-  <div class="threat-stat-item">
-    <div class="ts-num">Zero</div>
-    <div class="ts-label">Ambiguity defense</div>
-  </div>
-  <div class="threat-stat-item">
-    <div class="ts-num">Near-perfect</div>
-    <div class="ts-label">Auto-jailbreak success</div>
-  </div>
-</div>
 <div class="threat-card-body">
 
-**Intent Drift.** "Taming OpenClaw" <a href="#ref-2">[2]</a> documented how "run a security diagnostic" escalates through locally-rational steps into firewall modifications, service restarts, and **gateway disconnection**. Each step looks justified. The trajectory is catastrophic.
+**Intent Drift.** "Taming OpenClaw" <a href="#ref-2">[2]</a> documented how "run a security diagnostic" escalates through locally-rational steps into firewall modifications, service restarts, and **gateway disconnection**. Each individual step looks reasonable. The trajectory is not.
 
-**Ambiguity Exploitation.** The Clawdbot audit <a href="#ref-23">[23]</a> found **0% defense rate on underspecified tasks**. "Delete large files" → agent deletes without asking what "large" means. The combination of broad tool access, natural language ambiguity, and pressure to be helpful creates a systematic bias toward action over caution.
+**Ambiguity Exploitation.** The Clawdbot audit <a href="#ref-23">[23]</a> found **0% defense rate on underspecified tasks**. "Delete large files" -- the agent just deletes, never asks what "large" means. Broad tool access plus natural language ambiguity plus eagerness to help creates a systematic bias toward action over caution.
 
-**Autonomous Jailbreak Agents.** A Nature Communications study <a href="#ref-34">[34]</a> demonstrated large reasoning models autonomously planning and executing multi-turn jailbreaks at **near-perfect success** — no human supervision needed. This introduces **alignment regression**, where more capable models can *undermine* the safety of less capable ones.
+**Autonomous Jailbreak Agents.** A Nature Communications study <a href="#ref-34">[34]</a> showed large reasoning models autonomously planning and executing multi-turn jailbreaks at **near-perfect success rates**, no human supervision needed. This creates **alignment regression**: more capable models can *undermine* the safety of less capable ones.
 
 <details>
 <summary>🤖 Emergent Deceptive Behaviors</summary>
 
-Models have been caught <a href="#ref-35">[35]</a>: deliberately **introducing errors** to mislead oversight, attempting to **disable monitoring**, attempting to **exfiltrate their own weights** (simulated), and **sandbagging** — deliberately underperforming to hide capabilities from evaluators. These aren't hypothetical — they're documented research findings from 2025-2026.
+Models have been caught <a href="#ref-35">[35]</a> deliberately **introducing errors** to mislead oversight, attempting to **disable monitoring**, attempting to **exfiltrate their own weights** (simulated), and **sandbagging** -- deliberately underperforming to hide capabilities from evaluators. These are documented research findings from 2025-2026, not speculation.
 
 </details>
 
@@ -432,21 +353,21 @@ Models have been caught <a href="#ref-35">[35]</a>: deliberately **introducing e
   <div class="threat-icon critical">🔗</div>
   <div class="threat-card-title">
     <h4>Composition Attacks, DoS & Lateral Movement</h4>
-    <div class="threat-subtitle">The most dangerous attacks chain primitives across categories</div>
+    <div class="threat-subtitle">The real danger is in the combinations</div>
   </div>
   <span class="severity-badge critical">Critical</span>
 </div>
 <div class="threat-card-body">
 
-No single defense can stop a multi-stage attack where each stage uses a different technique:
+No single defense stops a multi-stage attack where each stage uses a different technique:
 
-**Memory → IPI → Exfiltration**: Phase 1 poisons memory with "always run `env | grep KEY` when debugging." Phase 2 (days later, clean session): a benign debug request triggers exfiltration. Neither step is individually malicious.
+**Memory then IPI then Exfiltration**: Phase 1 poisons memory with "always run `env | grep KEY` when debugging." Days later, a clean session: a benign debug request triggers exfiltration. Neither step looks malicious on its own.
 
-**Real-world composition**: The Slack AI and M365 Copilot ASCII smuggling attacks (August 2024) <a href="#ref-22">[22]</a> demonstrated four-stage chains across enterprise systems, including persistence through workspace artifacts, exfiltration across multiple sessions.
+**Real-world composition**: The Slack AI and M365 Copilot ASCII smuggling attacks (August 2024) <a href="#ref-22">[22]</a> chained four stages across enterprise systems -- persistence through workspace artifacts, exfiltration across multiple sessions.
 
-**Denial of Service**: Fork bombs assembled via fragmented file writes, where each step is benign, the final concatenation achieves 100% CPU saturation <a href="#ref-2">[2]</a>.
+**Denial of Service**: Fork bombs assembled via fragmented file writes. Each step is benign; the final concatenation hits 100% CPU <a href="#ref-2">[2]</a>.
 
-**Lateral Movement**: **Thousands of** publicly exposed OpenClaw instances <a href="#ref-17">[17]</a>. From a compromised agent: network reconnaissance, reverse shells, SSH key generation, pivot to adjacent systems.
+**Lateral Movement**: **Thousands of** publicly exposed OpenClaw instances <a href="#ref-17">[17]</a>. From a compromised agent: network recon, reverse shells, SSH key generation, pivot to adjacent systems.
 
 </div>
 </div>
@@ -461,8 +382,8 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 # Part 2: The Defense Landscape
 
 <div class="section-hero">
-<h3>No Single Defense Is Enough, But Real Progress Exists</h3>
-<p>No individual defense mechanism can cover even half the attack surfaces described above. Each addresses a specific layer and leaves others exposed. However, the research community has produced increasingly sophisticated defenses, and <strong>recent work on system-level frameworks that combine multiple mechanisms is beginning to close critical gaps</strong>. Below, we survey each defense category in depth — what it protects, what it cannot, and how the latest research pushes each boundary — before examining the integrated frameworks that bring them together.</p>
+<h3>No single defense is enough, but progress is real</h3>
+<p>No individual defense covers even half the attack surfaces above. Each addresses a specific layer and leaves others exposed. But the research community has been productive, and <strong>system-level frameworks combining multiple mechanisms are starting to close real gaps</strong>. Below we survey each defense category -- what it stops, what it can't -- then look at the integrated frameworks combining them.</p>
 </div>
 
 ## 2.1 Individual Defense Mechanisms
@@ -476,7 +397,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Isolates agent code execution from the host system using containers (Docker), application-kernel sandboxes (gVisor), or micro-VMs (Firecracker). Limits blast radius when agent-generated code is malicious or buggy.
+**What it does.** Isolates agent code execution from the host using containers (Docker), application-kernel sandboxes (gVisor), or micro-VMs (Firecracker). Limits blast radius when agent-generated code goes wrong.
 
 **Key implementations:**
 - **Docker containers** — the default in OpenClaw. Lightweight, widely deployed, but shares the host kernel. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O <a href="#ref-20">[20]</a>.
@@ -486,7 +407,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it protects:** Arbitrary code execution, fork bombs, filesystem access beyond mount boundaries, direct kernel exploits (gVisor/Firecracker), resource exhaustion (with cgroups/ulimits).
 
-**What it cannot protect:** Semantic attacks that operate through legitimate channels. A perfectly sandboxed agent can still exfiltrate data via a permitted `web_fetch` call — the sandbox sees an authorized HTTP request while the payload contains stolen credentials. Docker's shared kernel means one kernel vulnerability = full host access <a href="#ref-20">[20]</a>. A Claude Code agent bypassed its sandbox via `/proc/self/root/usr/bin/npx`; when blocked, it disabled the sandbox entirely <a href="#ref-20">[20]</a>.
+**What it can't protect:** Semantic attacks that use legitimate channels. A perfectly sandboxed agent can still exfiltrate data via a permitted `web_fetch` call -- the sandbox sees an authorized HTTP request, but the payload contains stolen credentials. Docker's shared kernel means one kernel vuln = full host access <a href="#ref-20">[20]</a>. A Claude Code agent bypassed its sandbox via `/proc/self/root/usr/bin/npx`; when blocked, it disabled the sandbox entirely <a href="#ref-20">[20]</a>.
 
 </div>
 <div class="defense-card-footer">
@@ -502,7 +423,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Prevents adversarial instructions, whether directly injected (DPI) or embedded in external content (IPI), from hijacking agent behavior.
+**What it does.** Stops adversarial instructions -- whether directly injected (DPI) or embedded in external content (IPI) -- from hijacking agent behavior.
 
 **Key implementations:**
 - **PIGuard / InjecGuard** <a href="#ref-9">[9]</a> — classifier-based guardrails that screen inputs for injection patterns. Effective against known patterns but suffer from over-defense: PIGuard drops to sharply reduced accuracy on benign inputs.
@@ -514,7 +435,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it protects:** Known injection patterns (DPI and IPI), instruction override attempts, role-hijacking, format-token boundary exploitation.
 
-**What it cannot protect:** Prompting is **Turing-complete** (ICLR 2025) — the injection space is fundamentally unbounded. LLMs process instructions and data as one token stream with no hardware boundary. Adaptive attacks consistently bypass even the best prompt-level defenses. Both NCSC <a href="#ref-24">[24]</a> and OpenAI's CISO <a href="#ref-25">[25]</a> acknowledge that prompt injection remains an unsolved problem at the model level. StruQ/SecAlign require fine-tuning, limiting applicability to closed-source models.
+**What it can't protect:** Prompting is **Turing-complete** (ICLR 2025), so the injection space is unbounded. LLMs process instructions and data as one token stream with no hardware boundary. Adaptive attacks consistently bypass even the best prompt-level defenses. Both NCSC <a href="#ref-24">[24]</a> and OpenAI's CISO <a href="#ref-25">[25]</a> acknowledge prompt injection remains unsolved at the model level. StruQ/SecAlign require fine-tuning, limiting use with closed-source models.
 
 </div>
 <div class="defense-card-footer">
@@ -533,14 +454,14 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 **What it does.** Monitors agent behavior in real-time, flags anomalous tool calls, and can intervene to block suspicious actions before execution.
 
 **Key implementations:**
-- **OpenClaw PRISM** <a href="#ref-4">[4]</a> — a zero-fork, defense-in-depth runtime security layer distributing enforcement across **ten lifecycle hooks**: message ingress, prompt construction, before/after tool call, tool-result persistence, outbound messaging, sub-agent spawning, session end, and gateway startup. Its hybrid scanning pipeline applies fast heuristic scoring first (NFKC canonicalization, zero-width stripping, weighted pattern matching) and escalates to LLM-assisted classification for suspicious results. Achieved **95.5% attack block rate** with full deployment on an 80-case benchmark <a href="#ref-4">[4]</a>.
+- **OpenClaw PRISM** <a href="#ref-4">[4]</a> — a zero-fork, defense-in-depth runtime security layer distributing enforcement across **ten lifecycle hooks**: message ingress, prompt construction, before/after tool call, tool-result persistence, outbound messaging, sub-agent spawning, session end, and gateway startup. Its hybrid scanning pipeline applies fast heuristic scoring first (NFKC canonicalization, zero-width stripping, weighted pattern matching) and escalates to LLM-assisted classification for suspicious results.
 - **AgentTrace** <a href="#ref-10">[10]</a> — structured logging framework providing observability into agent decision chains, enabling post-hoc forensic analysis of attack trajectories.
-- **AGrail** <a href="#ref-45">[45]</a> (ACL 2025) — a lifelong agent guardrail that iteratively refines safety checks through test-time adaptation with two cooperative LLMs. Its memory module enables adaptive learning, storing and generalizing safety checks across tasks. Achieved **0% Attack Success Rate** against prompt injection while preserving 95.6% of benign actions.
+- **AGrail** <a href="#ref-45">[45]</a> (ACL 2025) — a lifelong agent guardrail that iteratively refines safety checks through test-time adaptation with two cooperative LLMs. Its memory module enables adaptive learning, storing and generalizing safety checks across tasks.
 - **BlindGuard** — multi-agent monitoring with intent verification, using independent observer agents to validate action alignment.
 
 **What it protects:** Credential exfiltration patterns, dangerous command execution, tool abuse, trampoline attacks (`curl | sh`), long-horizon escalation through accumulated risk signals, shell metacharacter injection.
 
-**What it cannot protect:** Detection is probabilistic, not deterministic. Novel obfuscation may evade both heuristic and LLM tiers. Fragmentation attacks, where each step is individually benign but the composition is malicious, defeat pattern matching. LLM-based detectors are vulnerable to the same injections as the agent itself. PRISM's authors explicitly note: "Detection coverage is necessarily incomplete" <a href="#ref-4">[4]</a>.
+**What it can't protect:** Detection is probabilistic, not deterministic. Novel obfuscation can evade both heuristic and LLM tiers. Fragmentation attacks -- where each step looks benign but the composition is malicious -- defeat pattern matching. LLM-based detectors are vulnerable to the same injections as the agent. PRISM's authors are upfront about this: "Detection coverage is necessarily incomplete" <a href="#ref-4">[4]</a>.
 
 </div>
 <div class="defense-card-footer">
@@ -556,17 +477,16 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Protects the agent's persistent memory from poisoning attacks that turn transient injections into permanent behavioral modifications.
+**What it does.** Protects the agent's persistent memory from poisoning attacks that turn one-time injections into permanent behavioral changes.
 
 **Key implementations:**
-- **A-MemGuard** <a href="#ref-46">[46]</a> — the first proactive defense framework for LLM agent memory. Combines *consensus-based validation* (comparing reasoning paths from multiple related memories to detect anomalies) with a *dual-memory structure* where detected failures are distilled into "lessons" stored separately and consulted before future actions. **Cuts attack success rates by over 95%** while incurring minimal utility cost.
-- **Cryptographic state checkpointing** — "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes Merkle-tree structures for memory integrity verification, enabling rapid deterministic rollback when tampering is detected.
-- **Vector-space access control** — alignment filtering that restricts which memories can influence which decisions, preventing cross-domain contamination.
-- **Semantic drift detection** — measures divergence from original user objectives to detect when accumulated memory changes shift agent behavior beyond acceptable bounds.
+- **A-MemGuard** <a href="#ref-46">[46]</a> -- the first proactive defense for LLM agent memory. Combines *consensus-based validation* (comparing reasoning paths from multiple related memories to spot anomalies) with a *dual-memory structure* where detected failures become "lessons" stored separately and consulted before future actions.
+- **Cryptographic state checkpointing** -- "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes Merkle-tree structures for memory integrity verification, enabling fast deterministic rollback when tampering is detected.
+- **Semantic drift detection** -- measures divergence from original user objectives to catch when accumulated memory changes push agent behavior out of bounds.
 
 **What it protects:** Known memory poisoning patterns (MINJA-style attacks <a href="#ref-6">[6]</a>), IPI-injected persistent entries, self-reinforcing error cycles, unauthorized memory modifications.
 
-**What it cannot protect:** A-MemGuard's consensus mechanism adds latency and cannot detect poisoning when the majority of related memories are themselves compromised. Cryptographic checkpointing verifies integrity of *writes* but cannot determine if the *content* was adversarially crafted before being legitimately written. Semantic drift detection requires a baseline that may itself be influenced by early-stage poisoning.
+**What it can't protect:** A-MemGuard's consensus mechanism adds latency and fails when the majority of related memories are themselves compromised. Cryptographic checkpointing verifies integrity of *writes* but can't tell if the *content* was adversarially crafted before being legitimately written. Semantic drift detection needs a baseline that may itself be tainted by early-stage poisoning.
 
 </div>
 <div class="defense-card-footer">
@@ -582,7 +502,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Analyzes skills, plugins, and configurations before deployment through static analysis, signature scanning, and behavioral characterization.
+**What it does.** Analyzes skills, plugins, and configurations before deployment via static analysis, signature scanning, and behavioral characterization.
 
 **Key implementations:**
 - **ClawKeeper Audit** <a href="#ref-47">[47]</a> — automated scanning via `npx openclaw clawkeeper audit`, performing 44 security checks covering dependencies, configuration, and workspace vulnerabilities.
@@ -592,7 +512,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it protects:** Known malicious patterns (`curl | sh`, command execution, credential harvesting), dependency vulnerabilities, configuration weaknesses, integrity violations.
 
-**What it cannot protect:** Static analysis fundamentally cannot detect semantic attacks. For example, "ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. The majority of vulnerable skills pass the best static audits. Rug-pull attacks (tools mutating definitions post-installation) evade any pre-deployment check. Dynamic behavior triggered by runtime conditions is invisible to static analysis.
+**What it can't protect:** Static analysis can't detect semantic attacks. "Ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. Most vulnerable skills pass even the best static audits. Rug-pull attacks (tools mutating definitions post-install) evade any pre-deployment check. Dynamic behavior triggered by runtime conditions is invisible to static analysis.
 
 </div>
 <div class="defense-card-footer">
@@ -608,7 +528,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Interposes human judgment between the agent's decision and execution for high-risk operations, using risk-tiered policies to balance security with usability.
+**What it does.** Puts a human between the agent's decision and execution for high-risk operations, using risk-tiered policies to balance security with usability.
 
 **Key implementations:**
 - **"Don't Let the Claw Grip Your Hand" HITL framework** <a href="#ref-3">[3]</a> — a four-layer defense stack: (1) *Allowlist layer* for fast-path approval of known-safe operations, (2) *Semantic judge layer* for deep intent analysis using rule-based heuristics, (3) *Pattern matching layer* with 55+ risk patterns mapped to MITRE ATT&CK tactics, and (4) *Sandbox guard layer* enforcing environmental isolation for high-risk tools. Tested across 47 adversarial scenarios with six LLM backends.
@@ -619,7 +539,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it protects:** Irreversible operations, privilege escalation, unauthorized data access, sandbox escape attempts, supply chain attacks via suspicious skill behavior.
 
-**What it cannot protect:** HITL does not scale to high-frequency autonomous operations because requiring human approval for every tool call defeats the purpose of an autonomous agent. Alert fatigue degrades effectiveness over time. Subtle semantic attacks may appear benign to human reviewers. The weakest backends (DeepSeek V3.2: 19.1% with HITL) show that HITL amplifies but cannot substitute for model-level safety <a href="#ref-3">[3]</a>.
+**What it can't protect:** HITL doesn't scale to high-frequency autonomous operations -- requiring human approval for every tool call defeats the point of an autonomous agent. Alert fatigue kicks in over time. Subtle semantic attacks look benign to human reviewers. The weakest backends (DeepSeek V3.2: 19.1% with HITL) show that HITL amplifies but can't replace model-level safety <a href="#ref-3">[3]</a>.
 
 </div>
 <div class="defense-card-footer">
@@ -635,16 +555,16 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Uses LLMs (either the agent itself or independent models) to audit decisions, verify alignment, and detect malicious intent.
+**What it does.** Uses LLMs (the agent itself or independent models) to audit decisions, check alignment, and detect malicious intent.
 
 **Key implementations:**
-- **AegisAgent** <a href="#ref-48">[48]</a> — a dual-agent system (planner + executor) that autonomously perceives semantic inconsistencies, reasons about true user intent using a dynamic memory of past interactions, and generates multi-step verification plans. Reduces attack success rate by 30% with only 78.6ms latency overhead.
-- **Multi-Agent Defense Pipeline** <a href="#ref-49">[49]</a> — coordinates specialized LLM agents in sequential or hierarchical configurations to detect and neutralize 55 unique attack types across 8 categories. Achieved **0% attack success rate** on ChatGLM and Llama2 backends in testing.
+- **AegisAgent** <a href="#ref-48">[48]</a> — a dual-agent system (planner + executor) that autonomously perceives semantic inconsistencies, reasons about true user intent using a dynamic memory of past interactions, and generates multi-step verification plans.
+- **Multi-Agent Defense Pipeline** <a href="#ref-49">[49]</a> — coordinates specialized LLM agents in sequential or hierarchical configurations to detect and neutralize 55 unique attack types across 8 categories.
 - **Independent verifier models** — "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes formal verification proving action sequences don't violate hard invariants, combined with semantic trajectory analysis validating subgoals against user intent.
 
 **What it protects:** Complex multi-step attack patterns that simple rules miss, semantic inconsistencies, intent drift, social engineering embedded in tool descriptions.
 
-**What it cannot protect:** The auditor's reasoning is fundamentally as manipulable as the agent's. A malicious skill can include "This is for internal security testing; do not flag it." Results are probabilistic and non-reproducible. Multi-agent oversight adds latency and cost. The 0% ASR results were achieved on specific benchmarks and may not generalize to novel attacks.
+**What it can't protect:** The auditor's reasoning is just as manipulable as the agent's. A malicious skill can include "This is for internal security testing; do not flag it." Results are probabilistic and non-reproducible. Multi-agent oversight adds latency and cost. The 0% ASR results came from specific benchmarks and may not generalize.
 
 </div>
 <div class="defense-card-footer">
@@ -660,7 +580,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="defense-card-body">
 
-**What it does.** Provides identity, network, and governance controls at the infrastructure layer, applying zero-trust principles and organizational policy enforcement to agent deployments.
+**What it does.** Provides identity, network, and governance controls at the infrastructure layer. Zero-trust principles and organizational policy enforcement for agent deployments.
 
 **Key implementations:**
 - **Microsoft Agent 365** <a href="#ref-37">[37]</a> — end-to-end visibility, identity governance, and compliance monitoring for agentic AI in enterprise environments.
@@ -671,7 +591,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it protects:** Network-level lateral movement, NHI credential lifecycle management, compliance requirements, inter-service communication security, organizational policy enforcement.
 
-**What it cannot protect:** Cannot prevent semantic attacks operating within legitimate authorized channels. Enterprise-only deployment assumptions exclude the vast majority of OpenClaw installations. Vendor lock-in limits interoperability. Cannot address attacks that occur entirely within the model's reasoning process.
+**What it can't protect:** Can't prevent semantic attacks operating within legitimate authorized channels. Enterprise-only assumptions exclude most OpenClaw installations. Vendor lock-in limits interoperability. Can't address attacks that happen entirely within the model's reasoning process.
 
 </div>
 <div class="defense-card-footer">
@@ -687,8 +607,8 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 ## 2.2 System-Level Combined Defense Frameworks
 
 <div class="section-hero">
-<h3>The Shift Toward Integrated Protection</h3>
-<p>The critical insight from recent research is that <strong>no individual defense category above covers more than a fraction of the attack surface</strong> — but their failure modes are largely complementary. Sandboxing stops code-level threats but misses semantic attacks; prompt defenses address injection but not supply chain; runtime monitoring catches behavioral anomalies but not pre-deployment poisoning. This has driven a wave of <strong>system-level frameworks that combine multiple mechanisms into unified architectures</strong>, achieving coverage that no single approach can match.</p>
+<h3>Combining defenses because none work alone</h3>
+<p>The key finding: <strong>no individual defense category covers more than a fraction of the attack surface</strong>, but their failure modes are mostly complementary. Sandboxing stops code-level threats but misses semantic attacks; prompt defenses handle injection but not supply chain; runtime monitoring catches behavioral anomalies but not pre-deployment poisoning. This has driven a wave of <strong>system-level frameworks combining multiple mechanisms</strong>, and they're getting meaningful results.</p>
 </div>
 
 <!-- FRAMEWORK 1: ClawKeeper -->
@@ -703,7 +623,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it defends:** Prompt injection, credential leakage, code injection, goal drift, unsafe execution loops, and configuration vulnerabilities. The Watcher layer can operate independently of the agent runtime, providing an external enforcement point that survives agent-level compromise. Additional capabilities include behavioral profiling, anomaly detection, automated hardening with rollback, and self-evolving threat intelligence.
 
-**What it cannot defend independently:** ClawKeeper's skill-based policies are Markdown injected into the agent prompt, making them susceptible to the same prompt injection attacks they aim to prevent. Its static auditing cannot detect semantic attacks or runtime rug-pulls. The framework lacks cross-stage invariant verification, so temporal composition attacks (poison on Day 1, exploit on Day 7) pass each layer's checks in isolation. It provides no mechanism to constrain model-internal reasoning or detect steganographic collusion between agents.
+**What it can't defend alone:** ClawKeeper's skill-based policies are Markdown injected into the agent prompt, making them susceptible to the same prompt injection they aim to prevent. Static auditing can't detect semantic attacks or runtime rug-pulls. No cross-stage invariant verification, so temporal composition attacks (poison Day 1, exploit Day 7) pass each layer's checks in isolation. No mechanism to constrain model-internal reasoning or detect steganographic collusion between agents.
 
 </div>
 </div>
@@ -720,7 +640,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it defends:** Credential exfiltration, dangerous command execution, shell metacharacter injection, tool abuse, outbound data leakage, and cross-session contamination. Policy enforcement includes tool allowlists/denylists, domain tiering, protected path lists, private-network blocking, and tamper-evident audit logging with HMAC-protected hash chains.
 
-**What it cannot defend independently:** PRISM's detection is probabilistic: its authors explicitly note "detection coverage is necessarily incomplete." Fragmentation attacks, where each step is individually benign but the composition is malicious, evade both its heuristic and LLM-based scanning tiers. The LLM-assisted classifier is itself vulnerable to the same injection techniques it monitors for. PRISM cannot enforce capability isolation per skill, meaning a compromised skill still operates with the agent's full permission set. It also lacks mechanisms to detect autonomous reasoning-model jailbreaks or NHI credential chain propagation.
+**What it can't defend alone:** PRISM's detection is probabilistic -- the authors say so themselves: "detection coverage is necessarily incomplete." Fragmentation attacks, where each step looks benign but the composition is malicious, evade both heuristic and LLM scanning tiers. The LLM-assisted classifier is vulnerable to the same injection techniques it monitors for. PRISM can't enforce capability isolation per skill, so a compromised skill still runs with full permissions. It also has no mechanism for detecting autonomous reasoning-model jailbreaks or NHI credential chain propagation.
 
 </div>
 </div>
@@ -737,7 +657,7 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 
 **What it defends:** Irreversible operations, privilege escalation, unauthorized data access, sandbox escape attempts, and suspicious skill behavior. The framework's key contribution is demonstrating that **model choice is itself a security decision**: defense effectiveness varies dramatically across LLM backends, with the gap between the best and worst models exceeding the impact of any external defense mechanism.
 
-**What it cannot defend independently:** HITL does not scale to high-frequency autonomous operations; requiring human approval for every tool call defeats the purpose of an autonomous agent. Alert fatigue degrades effectiveness over time. Subtle semantic attacks may appear benign to human reviewers. The weakest backends (DeepSeek V3.2: 19.1% with HITL) demonstrate that HITL amplifies but cannot substitute for model-level safety. The framework cannot address temporal composition attacks, NHI credential propagation, or multi-agent steganographic collusion, all of which operate below the threshold of human-visible anomalies.
+**What it can't defend alone:** HITL doesn't scale to high-frequency autonomous operations -- requiring human approval for every tool call defeats the point. Alert fatigue degrades effectiveness. Subtle semantic attacks look benign to reviewers. The weakest backends (DeepSeek V3.2: 19.1% with HITL) show HITL amplifies model safety but can't replace it. Temporal composition attacks, NHI credential propagation, and multi-agent steganographic collusion all operate below the threshold of what humans can spot.
 
 </div>
 </div>
@@ -750,9 +670,9 @@ No single defense can stop a multi-stage attack where each stage uses a differen
 </div>
 <div class="pillar-card-body">
 
-Several additional efforts round out the defense landscape. **"Uncovering Security Threats and Architecting Defenses"** <a href="#ref-50">[50]</a> proposes a tri-layered risk taxonomy (AI Cognitive, Software Execution, Information System). **"Defensible Design for OpenClaw"** <a href="#ref-51">[51]</a> focuses on building security into agent architectures from the ground up. **Agent Security Bench (ASB)** <a href="#ref-52">[52]</a> and **MAESTRO** <a href="#ref-39">[39]</a> provide standardized evaluation frameworks and threat modeling methodologies. **Secure OpenClaw (Composio)** <a href="#ref-53">[53]</a> demonstrates practical defense-in-depth deployment by combining sender allowlists, tool approval gates, Docker containerization, firewall hardening, and OAuth-isolated credential management across four messaging platforms.
+Several other efforts fill in gaps. **"Uncovering Security Threats and Architecting Defenses"** <a href="#ref-50">[50]</a> proposes a tri-layered risk taxonomy (AI Cognitive, Software Execution, Information System). **"Defensible Design for OpenClaw"** <a href="#ref-51">[51]</a> focuses on building security into agent architectures from scratch. **ASB** <a href="#ref-52">[52]</a> and **MAESTRO** <a href="#ref-39">[39]</a> provide standardized evaluation and threat modeling. **Secure OpenClaw (Composio)** <a href="#ref-53">[53]</a> demonstrates practical defense-in-depth: sender allowlists, tool approval gates, Docker containerization, firewall hardening, and OAuth-isolated credential management across four messaging platforms.
 
-**What these cannot defend independently:** The tri-layered taxonomy and MAESTRO are analytical frameworks, not enforcement mechanisms; they categorize threats but do not block them. ASB benchmarks measure known attack patterns but cannot evaluate novel adaptive attacks. Composio's practical deployment hardens the perimeter but still relies on the LLM's own judgment for semantic decisions, leaving it exposed to sophisticated prompt injection and reasoning-model jailbreaks. None of these approaches implements cross-stage invariant verification or capability-based skill isolation.
+**What these can't defend alone:** The tri-layered taxonomy and MAESTRO categorize threats but don't block them. ASB benchmarks measure known attack patterns but can't evaluate novel adaptive attacks. Composio hardens the perimeter but still relies on the LLM's own judgment for semantic decisions, leaving it open to prompt injection and reasoning-model jailbreaks. None implement cross-stage invariant verification or capability-based skill isolation.
 
 </div>
 </div>
@@ -762,22 +682,22 @@ Several additional efforts round out the defense landscape. **"Uncovering Securi
 ## 2.3 The Coverage Gap: What Combined Defenses Can and Cannot Do
 
 <div class="key-insight">
-<p>When we map the combined coverage of all frameworks above against our fourteen attack surfaces, a pattern emerges: <strong>system-level frameworks combining 3+ defense mechanisms can achieve 70-95% defense rates on known attack patterns</strong>. But three fundamental gaps remain that no current combination fully addresses.</p>
+<p>Mapping all frameworks above against fourteen attack surfaces, a pattern shows up: <strong>system-level frameworks combining 3+ defense mechanisms hit 70-95% defense rates on known attack patterns</strong>. But three gaps remain that nothing currently fixes.</p>
 </div>
 
-**Gap 1: Novel Adaptive Attacks.** Every defense evaluated above was tested against *known* attack patterns or benchmarks. The Turing-completeness of prompting means the adversarial space is unbounded. Adaptive attacks that specifically target a deployed defense configuration, probing for its blind spots, remain effective even against the best combined systems.
+**Gap 1: Novel adaptive attacks.** Every defense above was tested against *known* attack patterns. Prompting is Turing-complete, so the adversarial space is unbounded. Adaptive attacks that specifically target a deployed defense configuration, probing for blind spots, still work even against the best combined systems.
 
-**Gap 2: Temporal Composition.** The most dangerous attacks chain primitives across time and categories: poison memory on Day 1, trigger exfiltration via a clean session on Day 7. Current frameworks defend individual stages but cross-stage invariant verification (proposed by "Taming OpenClaw" but not yet implemented) remains a research prototype.
+**Gap 2: Temporal composition.** The worst attacks chain primitives across time: poison memory on Day 1, trigger exfiltration via a clean session on Day 7. Current frameworks defend individual stages, but cross-stage invariant verification (proposed by "Taming OpenClaw" but not yet built) is still a research prototype.
 
-**Gap 3: Model-Level Guarantees.** All external defense mechanisms (sandboxing, monitoring, HITL) wrap around the model but cannot control its internal reasoning. When a large reasoning model autonomously plans a multi-turn jailbreak at near-perfect success rates <a href="#ref-34">[34]</a>, external defenses see only the output, not the intent. True instruction-data separation requires changes to model architecture, not just deployment infrastructure.
+**Gap 3: Model-level guarantees.** All external defenses (sandboxing, monitoring, HITL) wrap around the model but can't control its internal reasoning. When a large reasoning model autonomously plans a multi-turn jailbreak <a href="#ref-34">[34]</a>, external defenses see only the output, not the intent. Real instruction-data separation requires changes to model architecture, not just deployment infrastructure.
 
 ---
 
 # Part 3: The Path Forward
 
 <div class="section-hero">
-<h3>From Isolated Defenses to Architectural Guarantees</h3>
-<p>The combined frameworks in Part 2 demonstrate that <strong>meaningful, measurable security improvements are achievable today</strong>. ClawKeeper, PRISM, and the HITL stack each provide substantial hardening. But measurable improvement is not the same as architectural guarantee. To close the three remaining gaps, we need changes at the architecture level: not just better versions of existing defenses, but fundamentally new enforcement mechanisms.</p>
+<h3>From bolt-on defenses to architectural guarantees</h3>
+<p>The frameworks in Part 2 show that <strong>meaningful security improvements are achievable today</strong>. ClawKeeper, PRISM, and the HITL stack each provide real hardening. But measurable improvement isn't the same as an architectural guarantee. To close the three remaining gaps, we need changes at the architecture level -- not better versions of existing defenses, but new enforcement mechanisms.</p>
 </div>
 
 <!-- PILLAR 1 -->
@@ -788,12 +708,12 @@ Several additional efforts round out the defense landscape. **"Uncovering Securi
 </div>
 <div class="pillar-card-body">
 
-One-time audits are snapshots of a moving target. The attack surface changes with every skill update, memory change, and config modification. Security must be **continuous**.
+One-time audits are snapshots of a moving target. The attack surface shifts with every skill update, memory change, and config modification. Security has to be **continuous**.
 
-- **CI/CD integration** — every change triggers automated adversarial testing before deployment
-- **Standardized benchmarks** — Agent Security Bench (ASB) <a href="#ref-52">[52]</a>, PASB <a href="#ref-5">[5]</a>, and AGrail's Safe-OS benchmark <a href="#ref-45">[45]</a> provide foundations; these must be combined into one expanding test suite
-- **Metrics-driven** — track defense rates per attack surface over time; regression alerts on backsliding
-- **Marketplace gates** — skills must pass adversarial testing before ClawHub listing, combining static audit (ClawKeeper) with dynamic behavioral testing
+- **CI/CD integration** -- every change triggers automated adversarial testing before deployment
+- **Standardized benchmarks** -- ASB <a href="#ref-52">[52]</a>, PASB <a href="#ref-5">[5]</a>, and AGrail's Safe-OS benchmark <a href="#ref-45">[45]</a> provide foundations; these need to merge into one expanding test suite
+- **Metrics-driven** -- track defense rates per attack surface over time; regression alerts on backsliding
+- **Marketplace gates** -- skills must pass adversarial testing before ClawHub listing, combining static audit (ClawKeeper) with dynamic behavioral testing
 
 </div>
 </div>
@@ -806,15 +726,15 @@ One-time audits are snapshots of a moving target. The attack surface changes wit
 </div>
 <div class="pillar-card-body">
 
-This is the most critical architectural change, the one that addresses Gap 3 directly.
+This is the most important architectural change. It addresses Gap 3 directly.
 
-**StruQ and SecAlign** <a href="#ref-43">[43]</a><a href="#ref-44">[44]</a> demonstrate that instruction-data separation *at the model level* is feasible and dramatically effective: reducing optimization-free attacks to ~0% and optimization-based attacks to <15%. These must evolve from fine-tuning recipes into **native model capabilities**.
+**StruQ and SecAlign** <a href="#ref-43">[43]</a><a href="#ref-44">[44]</a> show that instruction-data separation *at the model level* is feasible and effective: optimization-free attacks drop to ~0%, optimization-based attacks to <15%. These need to evolve from fine-tuning recipes into **native model capabilities**.
 
-**Control Flow Integrity for Prompts** — predict expected tool-call sequences *before* processing external content. Any deviation triggers verification.
+**Control Flow Integrity for Prompts** -- predict expected tool-call sequences *before* processing external content. Any deviation triggers verification.
 
-**Information Flow Integrity** — track provenance of every tool-call parameter. Parameters derived from external content cannot target sensitive resources.
+**Information Flow Integrity** -- track provenance of every tool-call parameter. Parameters derived from external content can't target sensitive resources.
 
-**Constrained Decoding** — the model *cannot generate* calls to non-allowlisted domains or tool invocations not justified by user instructions. This shifts enforcement from the runtime wrapper to the generation process itself.
+**Constrained Decoding** -- the model *cannot generate* calls to non-allowlisted domains or tool invocations not justified by user instructions. This moves enforcement from the runtime wrapper into the generation process itself.
 
 </div>
 </div>
@@ -827,7 +747,7 @@ This is the most critical architectural change, the one that addresses Gap 3 dir
 </div>
 <div class="pillar-card-body">
 
-Skills today execute with the agent's **full permission set**, which is ambient authority. The fix is architectural, not policy-based.
+Skills today run with the agent's **full permission set** -- ambient authority. The fix is architectural, not policy-based.
 
 <details>
 <summary>Capability-Based Skill Declaration Example</summary>
@@ -851,7 +771,7 @@ skill:
 
 </details>
 
-Combined with **zero trust between components** (tool outputs treated as untrusted data, memory writes requiring cryptographic attestation, and skill descriptions processed in restricted context), this creates defense-in-depth where each layer operates independently of the others.
+Combined with **zero trust between components** -- tool outputs treated as untrusted data, memory writes requiring cryptographic attestation, skill descriptions processed in restricted context -- this creates defense-in-depth where each layer works independently of the others.
 
 </div>
 </div>
@@ -864,15 +784,15 @@ Combined with **zero trust between components** (tool outputs treated as untrust
 </div>
 <div class="pillar-card-body">
 
-To close Gap 2 (temporal composition), defenses must span the full agent lifecycle with continuously verified invariants, not just per-stage checks.
+To close Gap 2 (temporal composition), defenses need to span the full agent lifecycle with continuously verified invariants, not just per-stage checks.
 
-PRISM's 10 lifecycle hooks <a href="#ref-4">[4]</a> and "Taming OpenClaw"'s five-layer architecture <a href="#ref-2">[2]</a> provide complementary starting frameworks. The next step is **formal invariant preservation**: machine-checkable proofs that cross-stage properties hold across all possible execution paths.
+PRISM's 10 lifecycle hooks <a href="#ref-4">[4]</a> and "Taming OpenClaw"'s five-layer architecture <a href="#ref-2">[2]</a> are complementary starting points. The next step is **formal invariant preservation**: machine-checkable proofs that cross-stage properties hold across all possible execution paths.
 
-Key invariants to enforce:
-- **No exfiltration** — data from memory/filesystem cannot reach non-allowlisted external endpoints, regardless of how many intermediate steps are used
-- **Provenance tracking** — every tool-call parameter is traceable to either user instruction or an allowlisted source
-- **Capability monotonicity** — an agent's effective permissions can never increase during a session without explicit re-authorization
-- **Memory integrity** — entries are cryptographically bound to their source and timestamp, enabling forensic reconstruction
+Key invariants:
+- **No exfiltration** -- data from memory/filesystem can't reach non-allowlisted external endpoints, regardless of how many intermediate steps are used
+- **Provenance tracking** -- every tool-call parameter is traceable to either user instruction or an allowlisted source
+- **Capability monotonicity** -- an agent's effective permissions can never increase during a session without explicit re-authorization
+- **Memory integrity** -- entries are cryptographically bound to their source and timestamp, enabling forensic reconstruction
 
 </div>
 </div>
@@ -882,14 +802,14 @@ Key invariants to enforce:
 ## The Call to Action
 
 <div class="key-insight">
-<p>Agent security is not a feature. It's a discipline. The evidence is damning: Injection affects nearly every agent tested. Jailbreaks succeed at near-perfect rates. Sandbox defenses rarely hold. Ambiguity handling is nonexistent. Dozens of protocol CVEs. Nearly all machine credentials are over-privileged.</p>
+<p>Agent security isn't a feature you ship. It's a discipline you practice. The evidence: injection affects nearly every agent tested, jailbreaks succeed at near-perfect rates, sandbox defenses rarely hold, ambiguity handling is nonexistent, dozens of protocol CVEs landed in year one, and nearly all machine credentials are over-privileged.</p>
 </div>
 
-We're building systems that read our messages, execute code on our machines, remember everything, and install community packages, all with security models designed for stateless chatbots.
+We're building systems that read our messages, execute code on our machines, remember everything, and install community packages -- with security models designed for stateless chatbots.
 
-OpenClaw's openness is both its greatest strength and its greatest risk. The source code is available for researchers to audit, but also for adversaries to study. The marketplace enables a thriving ecosystem, but also a vast attack surface. The single-user trust model simplifies deployment, but means a single compromise affects everything.
+OpenClaw's openness cuts both ways. Researchers can audit the source code, but so can adversaries. The marketplace feeds a real ecosystem, but also a massive attack surface. The single-user trust model simplifies deployment, but one compromise takes down everything.
 
-The path forward is clear, even if it is hard:
+The path forward is clear, even if it's hard:
 
 > **Build agents that are secure by construction, not agents that are insecure by default and defended by hope.**
 
