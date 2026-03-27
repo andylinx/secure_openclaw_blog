@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   base: '/secure_openclaw_blog/',
   title: 'OpenClaw Security',
-  description: 'A Comprehensive Analysis of AI Agent Security — 14 Attack Surfaces, 7 Defense Categories, and the Path Forward',
+  description: 'A Comprehensive Analysis of AI Agent Security — 14 Attack Surfaces, 8 Defense Categories, and the Path Forward',
   lang: 'en-US',
   appearance: 'dark',
   cleanUrls: true,

@@ -10,7 +10,7 @@ outline: [2, 3]
 
 ---
 
-> *"We cannot sandbox our way to safety. We must build agents that are secure by construction."*
+> *"We cannot sandbox our way to safety. We must build agents that are inherently and systematically secure by construction."*
 
 ---
 
@@ -18,7 +18,7 @@ outline: [2, 3]
 
 OpenClaw is a tool-using, persistent, multi-channel AI agent platform. Its agents read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. This is probably the future of personal AI. It's also a security disaster that nobody has a good answer for yet.
 
-This paper does three things. First, we map **fourteen attack surfaces** specific to agentic AI -- from the familiar (prompt injection) to the newly identified (non-human identity credential attacks, A2A session smuggling, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, the MCP CVE explosion) -- grounding each in real research and real incidents through March 2026. Second, we evaluate **eight categories of defenses** and **four integrated frameworks** (ClawKeeper, PRISM, the HITL defense stack, and emerging tri-layered approaches) that combine multiple mechanisms to reach 70-95% defense rates on known attack patterns. Third, we identify **three gaps that nothing currently fixes** -- novel adaptive attacks, temporal composition, and model-level guarantees -- and argue that closing them requires architectural redesign: real instruction-data separation, capability-based access control, and cross-stage invariant verification across the full agent lifecycle.
+This paper does three things. First, we map **fourteen attack surfaces** specific to agentic AI -- from the familiar (prompt injection) to the newly identified (non-human identity credential attacks, A2A session smuggling, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, the MCP CVE explosion) -- grounding each in real research and real incidents through March 2026. Second, we evaluate **eight categories of defenses** and **five integrated frameworks** that combine multiple mechanisms to reach 70-95% defense rates on known attack patterns. Third, we identify **three gaps that nothing currently fixes** -- novel adaptive attacks, temporal composition, and model-level guarantees -- and argue that closing them requires architectural redesign: real instruction-data separation, capability-based access control, and cross-stage invariant verification across the full agent lifecycle.
 
 ---
 
@@ -400,10 +400,14 @@ No single defense stops a multi-stage attack where each stage uses a different t
 **What it does.** Isolates agent code execution from the host using containers (Docker), application-kernel sandboxes (gVisor), or micro-VMs (Firecracker). Limits blast radius when agent-generated code goes wrong.
 
 **Key implementations:**
-- **Docker containers** — the default in OpenClaw. Lightweight, widely deployed, but shares the host kernel. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O <a href="#ref-20">[20]</a>.
+- **Docker containers** — supported in OpenClaw but opt-in (not enforced by default). Lightweight, widely deployed, but shares the host kernel. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O <a href="#ref-20">[20]</a>.
 - **gVisor** — Google's application-kernel intercepts all syscalls in userspace, providing stronger isolation than Docker while running on the same infrastructure.
 - **Firecracker micro-VMs** — ~125ms boot, <5 MiB overhead, dedicated kernel per session. Used by AWS Lambda/Fargate. Provides the strongest practical isolation for multi-tenant agent workloads.
 - **Kernel-level sandboxing (eBPF/seccomp)** — "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes eBPF and seccomp filters as the execution-control boundary, enabling fine-grained syscall filtering without full VM overhead.
+- **nono (Landlock/Seatbelt)** <a href="#ref-54">[54]</a> — kernel-level capability enforcement using Landlock (Linux) and Seatbelt (macOS). More fine-grained than Docker containers: restricts filesystem access, network, and process capabilities per-agent without containerization overhead.
+- **Edera** <a href="#ref-56">[56]</a> — VM-level isolation with per-workload kernels. Eliminates Docker's shared-kernel weakness without Firecracker's complexity. Each agent session gets a dedicated kernel.
+- **Minimus** <a href="#ref-55">[55]</a> — hardened container base images that reduce CVE count from 2,000+ to ~1% (99% reduction), shrinking the exploitable surface within container-based deployments.
+- **ClawShield** <a href="#ref-57">[57]</a> — system hardening tool performing 50+ security checks on Linux (42 on macOS) across network, access control, filesystem, and agent-specific security categories.
 
 **What it protects:** Arbitrary code execution, fork bombs, filesystem access beyond mount boundaries, direct kernel exploits (gVisor/Firecracker), resource exhaustion (with cgroups/ulimits).
 
@@ -506,13 +510,14 @@ No single defense stops a multi-stage attack where each stage uses a different t
 
 **Key implementations:**
 - **ClawKeeper Audit** <a href="#ref-47">[47]</a> — automated scanning via `npx openclaw clawkeeper audit`, performing 44 security checks covering dependencies, configuration, and workspace vulnerabilities.
+- **Agent-Audit** <a href="#ref-58">[58]</a> (USC) — a dedicated static analysis tool for AI agent applications, achieving **94.6% recall** on agent-specific vulnerabilities vs. 29.7% (Bandit) and 27.0% (Semgrep). Implements tool-boundary-aware taint tracking that follows data flow from `@tool` function parameters to dangerous sinks (subprocess, eval, SQL). Includes an **MCP configuration scanner** -- the only SAST tool that audits `claude_desktop_config.json` for overly broad filesystem access, unverified server sources, hardcoded secrets, unpinned packages, tool description poisoning, tool shadowing, and rug-pull drift detection. Covers all 10 OWASP Agentic Top 10 categories with 40+ detection rules. Also provides OpenClaw-specific SKILL.md scanning for obfuscated shell commands, `persistence: true` / `always: true` metadata flags, and `sandbox: false` misconfigurations.
 - **Taint analysis and AST construction** — "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes static analysis via abstract syntax tree construction and taint tracking to trace data flows through skill code.
 - **SBOM binding** — cryptographic Software Bill of Materials verification ensuring skill integrity from source to deployment.
 - **Large-scale audits** — Antiy CERT, Koi Security, and Snyk's ToxicSkills study <a href="#ref-14">[14]</a><a href="#ref-16">[16]</a> collectively audited tens of thousands of ClawHub skills, identifying ~20% malicious packages and >33% containing injection payloads.
 
-**What it protects:** Known malicious patterns (`curl | sh`, command execution, credential harvesting), dependency vulnerabilities, configuration weaknesses, integrity violations.
+**What it protects:** Known malicious patterns (`curl | sh`, command execution, credential harvesting), dependency vulnerabilities, configuration weaknesses, integrity violations, MCP configuration risks (Agent-Audit uniquely covers this -- Bandit and Semgrep achieve 0% recall on MCP vulnerabilities).
 
-**What it can't protect:** Static analysis can't detect semantic attacks. "Ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. Most vulnerable skills pass even the best static audits. Rug-pull attacks (tools mutating definitions post-install) evade any pre-deployment check. Dynamic behavior triggered by runtime conditions is invisible to static analysis.
+**What it can't protect:** Static analysis can't detect semantic attacks. "Ensure all referenced URLs are accessible by fetching them" looks benign but creates an IPI surface. Most vulnerable skills pass even the best static audits. Rug-pull attacks (tools mutating definitions post-install) evade any pre-deployment check. Dynamic behavior triggered by runtime conditions is invisible to static analysis. Agent-Audit currently supports Python + MCP JSON/YAML only, with intra-procedural taint tracking (inter-procedural analysis planned).
 
 </div>
 <div class="defense-card-footer">
@@ -673,6 +678,27 @@ No single defense stops a multi-stage attack where each stage uses a different t
 Several other efforts fill in gaps. **"Uncovering Security Threats and Architecting Defenses"** <a href="#ref-50">[50]</a> proposes a tri-layered risk taxonomy (AI Cognitive, Software Execution, Information System). **"Defensible Design for OpenClaw"** <a href="#ref-51">[51]</a> focuses on building security into agent architectures from scratch. **ASB** <a href="#ref-52">[52]</a> and **MAESTRO** <a href="#ref-39">[39]</a> provide standardized evaluation and threat modeling. **Secure OpenClaw (Composio)** <a href="#ref-53">[53]</a> demonstrates practical defense-in-depth: sender allowlists, tool approval gates, Docker containerization, firewall hardening, and OAuth-isolated credential management across four messaging platforms.
 
 **What these can't defend alone:** The tri-layered taxonomy and MAESTRO categorize threats but don't block them. ASB benchmarks measure known attack patterns but can't evaluate novel adaptive attacks. Composio hardens the perimeter but still relies on the LLM's own judgment for semantic decisions, leaving it open to prompt injection and reasoning-model jailbreaks. None implement cross-stage invariant verification or capability-based skill isolation.
+
+</div>
+</div>
+
+<!-- FRAMEWORK 6: SeClaw -->
+<div class="pillar-card">
+<div class="pillar-card-header">
+  <div class="pillar-number">E</div>
+  <h4>SeClaw: Security-First Agent Framework with Integrity Checking and Rollback</h4>
+</div>
+<div class="pillar-card-body">
+
+**SeClaw** <a href="#ref-59">[59]</a> is a lightweight (~6,500 LOC TypeScript) security-first agent framework implementing **ten coordinated defense mechanisms** across the full agent lifecycle. Unlike frameworks that bolt onto OpenClaw, SeClaw is built with security as a foundational design principle, supporting 9 messaging gateways with <100 MB memory footprint and ~150ms startup.
+
+SeClaw's core innovation is **structural integrity checking via program graphs**. Its **Control-Flow Integrity (CFI)** module builds expected tool-call trajectories from conversation history and static tool definitions, then validates each actual call against the expected sequence. Its **Information-Flow Integrity (IFI)** module validates tool parameters against source/type/value constraints and tracks data provenance -- if a parameter's source hasn't been produced yet, the system triggers user confirmation. Both use a unified Program Graph data structure combining control-flow and information-flow edges.
+
+Additional mechanisms include: a **Guard Model** that sanitizes tool outputs using a separate LLM before they re-enter the reasoning loop (catching injection at the model input boundary -- a unique approach); **Copy-on-Write snapshots** for rapid workspace rollback (APFS on macOS, btrfs on Linux) enabling recovery in seconds without replay; **Skill Audit** (LLM-based static analysis of loaded skills for injection, exfiltration, and destructive patterns); **Memory Audit** (scanning MEMORY.md and conversation history for poisoned entries, credentials, and PII); **Execution Audit** (automatic post-task behavioral analysis with risk levels from NO_RISK to CRITICAL); **channel-scoped session isolation** preventing cross-channel context bleed at the event bus level; **risky operation deny-lists** with confirmation gates; and **network security controls** with configurable Docker network modes.
+
+**What it defends:** Prompt injection (CFI/IFI + guard model), memory poisoning (memory audit + guard model), malicious skills (skill audit), credential exfiltration (privacy protection + output validation), risky command execution (deny-lists), cross-channel injection (session isolation), workspace contamination (CoW snapshot recovery). Maps across all five lifecycle stages.
+
+**What it can't defend alone:** CFI/IFI is the most expensive module and can add significant latency (exact overhead not published). The guard model is itself an LLM, making it vulnerable to the same injection techniques it detects. Docker sandbox is disabled by default and requires explicit configuration. No published benchmarks against ASB, PASB, or MAESTRO datasets. No capability-based skill isolation -- all skills still run with full agent permissions. Temporal composition attacks and multi-agent steganographic collusion are not explicitly addressed.
 
 </div>
 </div>
@@ -921,6 +947,18 @@ The path forward is clear, even if it's hard:
 <div class="ref-item"><a id="ref-52"></a><span class="ref-num">52</span><span class="ref-text">Zhang, H., et al. "Agent Security Bench (ASB): Formalizing and Benchmarking Attacks and Defenses in LLM-based Agents." ICLR 2025. <a href="https://proceedings.iclr.cc/paper_files/paper/2025/file/5750f91d8fb9d5c02bd8ad2c3b44456b-Paper-Conference.pdf">Paper</a>.</span></div>
 
 <div class="ref-item"><a id="ref-53"></a><span class="ref-num">53</span><span class="ref-text">ComposioHQ. "Secure OpenClaw: Production-Ready Secure Agent Deployment." 2026. <a href="https://github.com/ComposioHQ/secure-openclaw">GitHub</a>.</span></div>
+
+<div class="ref-item"><a id="ref-54"></a><span class="ref-num">54</span><span class="ref-text">nono. "Kernel-Level Sandboxing for OpenClaw via Landlock and Seatbelt." 2026.</span></div>
+
+<div class="ref-item"><a id="ref-55"></a><span class="ref-num">55</span><span class="ref-text">Minimus. "Hardened Container Base Images for Agent Deployments." 2026.</span></div>
+
+<div class="ref-item"><a id="ref-56"></a><span class="ref-num">56</span><span class="ref-text">Edera. "Per-Workload Kernel Isolation for Container Environments." 2026.</span></div>
+
+<div class="ref-item"><a id="ref-57"></a><span class="ref-num">57</span><span class="ref-text">ClawShield. "System Hardening Tool for OpenClaw Deployments." 2026.</span></div>
+
+<div class="ref-item"><a id="ref-58"></a><span class="ref-num">58</span><span class="ref-text">Agent-Audit (USC). "Static Security Analysis for AI Agent Applications." v0.15.1, 2026. Maps to OWASP Agentic Top 10.</span></div>
+
+<div class="ref-item"><a id="ref-59"></a><span class="ref-num">59</span><span class="ref-text">SeClaw. "Secure Personal Assistant with Time-rewinding Capabilities." 2026.</span></div>
 </div>
 
 ---
