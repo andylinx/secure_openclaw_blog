@@ -5,7 +5,7 @@ export default defineConfig({
   title: 'OpenClaw Security',
   description: 'A Comprehensive Analysis of AI Agent Security — 14 Attack Surfaces, 8 Defense Categories, and the Path Forward',
   lang: 'en-US',
-  appearance: 'dark',
+  appearance: false,
   cleanUrls: true,
   ignoreDeadLinks: true,
   lastUpdated: true,
@@ -21,25 +21,21 @@ export default defineConfig({
   themeConfig: {
     siteTitle: '🛡️ OpenClaw Security',
 
-    nav: [
-      { text: 'Position Paper', link: '/paper/' },
-    ],
+    nav: [],
 
-    sidebar: {
-      '/paper/': [
-        {
-          text: 'Position Paper',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/paper/' },
-            { text: 'Part 1: Threat Landscape', link: '/paper/#part-1-the-threat-landscape' },
-            { text: 'Part 2: Why Defenses Fail', link: '/paper/#part-2-existing-defenses-and-why-each-one-fails' },
-            { text: 'Part 3: The Path Forward', link: '/paper/#part-3-the-path-forward' },
-            { text: 'References', link: '/paper/#references' },
-          ]
-        }
-      ]
-    },
+    sidebar: [
+      {
+        text: 'Position Paper',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/' },
+          { text: 'Part 1: Threat Landscape', link: '/#part-1-the-threat-landscape' },
+          { text: 'Part 2: The Defense Landscape', link: '/#part-2-the-defense-landscape' },
+          { text: 'Part 3: The Path Forward', link: '/#part-3-the-path-forward' },
+          { text: 'References', link: '/#references' },
+        ]
+      }
+    ],
 
     outline: {
       level: [2, 3],
