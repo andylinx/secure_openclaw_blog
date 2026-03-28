@@ -57,11 +57,16 @@ We organize threats using the **five-layer lifecycle framework** from "Taming Op
 </div>
 <div class="threat-card-body">
 
+Adversarial instructions injected directly (DPI) or embedded in external content like web pages and documents (IPI) can hijack agent behavior. With 10+ messaging channels and tools like `web_fetch`, OpenClaw has a massive injection surface -- and the vast majority of LLM agents remain vulnerable <a href="#ref-8">[8]</a>.
+
+<details>
+<summary>📖 Full details on prompt injection</summary>
+
 **Direct Prompt Injection (DPI)** is when an adversary directly controls the user-facing input. With 10+ messaging channels, OpenClaw has 10+ injection surfaces. Anyone in a shared Slack workspace, a malicious Telegram contact, or a compromised Discord server can send messages that manipulate the agent.
 
 **Indirect Prompt Injection (IPI)** is worse. Demonstrated by Greshake et al. <a href="#ref-1">[1]</a> at BlackHat 2023, IPI embeds adversarial instructions in external content the agent retrieves -- web pages, emails, documents, API responses, even image metadata. The attacker poisons a webpage; when the agent fetches it via `web_fetch`, the hidden instructions take over. Zero interaction with the victim required.
 
-The numbers are bad: the vast majority of state-of-the-art LLM agents are vulnerable <a href="#ref-8">[8]</a>, adaptive attacks consistently beat multiple IPI defense mechanisms, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
+The numbers are bad: adaptive attacks consistently beat multiple IPI defense mechanisms, and OpenClaw's PASB benchmark found both DPI and IPI succeed across all tested model backends <a href="#ref-5">[5]</a>.
 
 OpenClaw's defense? XML tags (`<external-content>`) around fetched content. A convention the LLM can be talked out of respecting.
 
@@ -95,6 +100,8 @@ This attack is **zero-click** from the victim's perspective. The attacker never 
 
 </details>
 
+</details>
+
 </div>
 </div>
 
@@ -110,11 +117,16 @@ This attack is **zero-click** from the victim's perspective. The attacker never 
 </div>
 <div class="threat-card-body">
 
-Skills are Markdown-based instruction bundles that run with the agent's **full permissions**. Antiy CERT found roughly one in five ClawHub packages are malicious <a href="#ref-14">[14]</a>. Snyk's ToxicSkills study: **over a third** contain detectable injection payloads <a href="#ref-16">[16]</a>. An audit of tens of thousands of skills found over a quarter contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
+Skills are Markdown instruction bundles running with the agent's full permissions -- and roughly one in five ClawHub packages are malicious <a href="#ref-14">[14]</a>. The root problem is **ambient authority**: no capability isolation, no per-skill boundaries.
+
+<details>
+<summary>📖 Full details on supply chain attacks</summary>
+
+Snyk's ToxicSkills study found **over a third** of skills contain detectable injection payloads <a href="#ref-16">[16]</a>. An audit of tens of thousands of skills found over a quarter contain command execution patterns, and **1 in 6 contain `curl | sh`** <a href="#ref-14">[14]</a>.
 
 There's also **slopsquatting** -- a twist on typosquatting that exploits LLM hallucinations. When an LLM suggests a nonexistent package, attackers register it. "Taming OpenClaw" <a href="#ref-2">[2]</a> demonstrated this with a `hacked-weather` skill that used elevated priority metadata to silently exfiltrate user context while returning fabricated data.
 
-The root problem is **ambient authority**: every skill runs with the agent's full permission set. No capability isolation. No per-skill boundaries. No runtime enforcement.
+</details>
 
 </div>
 </div>
@@ -131,7 +143,10 @@ The root problem is **ambient authority**: every skill runs with the agent's ful
 </div>
 <div class="threat-card-body">
 
-MCP introduced several attack vectors in year one <a href="#ref-29">[29]</a>:
+MCP's first year introduced tool poisoning, rug pulls, and log-to-leak attacks <a href="#ref-29">[29]</a>, plus critical CVEs in widely-forked reference servers including Anthropic's own implementations <a href="#ref-30">[30]</a>.
+
+<details>
+<summary>📖 Full details on tool & MCP abuse</summary>
 
 **Tool Poisoning**: malicious instructions hidden in tool descriptions, invisible to users but visible to the LLM. Invariant Labs showed a poisoned MCP server silently exfiltrating a user's entire WhatsApp history. **Rug Pulls**: tools mutating their own definitions after installation. Safe on Day 1, stealing API keys by Day 7. **Log-To-Leak** <a href="#ref-11">[11]</a>: forcing agents to invoke malicious logging tools that exfiltrate data through side channels.
 
@@ -157,6 +172,8 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
 // Detection sees: concatenate text files and run script
 // Each component is benign; the composition is a reverse shell
 ```
+
+</details>
 
 </details>
 
@@ -186,7 +203,10 @@ agent.tool("exec", {cmd: "cat part_a.txt part_b.txt part_c.txt | bash"})
 </div>
 <div class="threat-card-body">
 
-Prompt injection gets you in the door. Memory poisoning lets you stay. OpenClaw stores memory in plaintext Markdown files loaded into every future prompt -- no integrity checks, no provenance tracking, no way to tell "user saved this" from "IPI injected this."
+OpenClaw stores memory in plaintext Markdown files loaded into every future prompt -- no integrity checks, no provenance tracking. A single injection can persist across sessions indefinitely, turning a one-time compromise into a permanent backdoor.
+
+<details>
+<summary>📖 Full details on memory poisoning</summary>
 
 This is well-documented: **MINJA** (NeurIPS 2025) <a href="#ref-6">[6]</a> achieved high attack success on RAG memory stores without direct write access. **MemoryGraft** <a href="#ref-7">[7]</a> showed false experiences permanently bias agent behavior. **Unit42** <a href="#ref-18">[18]</a> demonstrated IPI payloads persisting in memory across sessions for **days**. **PASB** <a href="#ref-5">[5]</a> measured majority write success for undefended attacks.
 
@@ -211,6 +231,8 @@ When the agent decides to "remember" something, it just appends to `MEMORY.md`. 
 
 </details>
 
+</details>
+
 </div>
 </div>
 
@@ -226,9 +248,12 @@ When the agent decides to "remember" something, it just appends to `MEMORY.md`. 
 </div>
 <div class="threat-card-body">
 
-AI agents operate with **machine identities** -- API keys, OAuth tokens, service account credentials -- that are just as powerful as human credentials. Almost no security framework accounts for them <a href="#ref-36">[36]</a>.
+AI agents operate with machine identities (API keys, OAuth tokens, service accounts) that are just as powerful as human credentials -- but almost no security framework accounts for them <a href="#ref-36">[36]</a>. A compromised agent's credentials give immediate lateral movement with no alerts fired.
 
-Agents create, modify, and use these credentials **autonomously at machine speed**. A compromised agent's credentials give you immediate lateral movement, no malware needed. Attackers find leaked secrets in public repos, CI logs, or compromised agent memory, then use valid NHIs to access cloud APIs undetected. Security tools see "authorized" API calls from a known service account. **No alerts fire.**
+<details>
+<summary>📖 Full details on NHI credential attacks</summary>
+
+Agents create, modify, and use these credentials **autonomously at machine speed**. Attackers find leaked secrets in public repos, CI logs, or compromised agent memory, then use valid NHIs to access cloud APIs undetected. Security tools see "authorized" API calls from a known service account. **No alerts fire.**
 
 Traditional IAM treats machine identities as static config. Agentic systems need **dynamic, ephemeral, least-privilege credentials** with continuous attestation. Most organizations haven't started building this.
 
@@ -244,6 +269,8 @@ Traditional IAM treats machine identities as static config. Agentic systems need
 
 4. Security tools see "authorized" API calls → no alerts triggered
 ```
+
+</details>
 
 </details>
 
@@ -273,11 +300,16 @@ Traditional IAM treats machine identities as static config. Agentic systems need
 </div>
 <div class="threat-card-body">
 
-"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends. Defense rates were consistently low. Even Claude, the best performer, only defended a minority of scenarios.
+Agents consistently escape container sandboxes -- defense rates are low across all tested LLM backends <a href="#ref-3">[3]</a>. The root problem: Docker containers share the host kernel, so one kernel vulnerability means full host access.
+
+<details>
+<summary>📖 Full details on sandbox escape</summary>
+
+"Don't Let the Claw Grip Your Hand" <a href="#ref-3">[3]</a> tested 47 adversarial scenarios across six LLM backends. Even Claude, the best performer, only defended a minority of scenarios.
 
 Real escapes have been documented. A **Claude Code agent** bypassed its sandbox via `/proc/self/root/usr/bin/npx`. When that path got blocked, it **disabled the sandbox entirely** <a href="#ref-20">[20]</a>. Three runC CVEs in November 2025 hit Docker, Kubernetes, containerd, and CRI-O. NVIDIAScape (CVE-2025-23266) showed container escape in GPU environments <a href="#ref-20">[20]</a>.
 
-The root problem: **Docker containers share the host kernel**. One kernel vulnerability = full host access.
+</details>
 
 </div>
 </div>
@@ -294,7 +326,12 @@ The root problem: **Docker containers share the host kernel**. One kernel vulner
 </div>
 <div class="threat-card-body">
 
-When agents share a workspace, compromising one compromises all. Research from embracethered.com <a href="#ref-19">[19]</a> showed the chain: IPI hijacks **Agent A** (Copilot) through repo content, Agent A writes malicious config to **Agent B's** files (`.mcp.json`, `CLAUDE.md`), Agent B loads the poisoned config, achieves RCE, reconfigures Agent A, and the loop continues.
+When agents share a workspace, compromising one compromises all -- IPI can chain through shared config files to achieve cross-agent RCE <a href="#ref-19">[19]</a>. Google's A2A protocol is also vulnerable to session smuggling that executes unauthorized actions <a href="#ref-32">[32]</a>.
+
+<details>
+<summary>📖 Full details on cross-agent escalation</summary>
+
+Research from embracethered.com <a href="#ref-19">[19]</a> showed the chain: IPI hijacks **Agent A** (Copilot) through repo content, Agent A writes malicious config to **Agent B's** files (`.mcp.json`, `CLAUDE.md`), Agent B loads the poisoned config, achieves RCE, reconfigures Agent A, and the loop continues.
 
 **Agent Session Smuggling (A2A Protocol)**: Unit42 <a href="#ref-32">[32]</a> demonstrated attacks on Google's Agent2Agent protocol. A2A sessions are *stateful*, so a malicious agent can smuggle instructions between legitimate requests. Their PoC got a financial assistant to **execute unauthorized stock trades**.
 
@@ -302,6 +339,8 @@ When agents share a workspace, compromising one compromises all. Research from e
 <summary>Multi-Agent Collusion via Steganography</summary>
 
 Research on secret collusion <a href="#ref-33">[33]</a> shows agents can set up **covert communication channels** through steganographic messaging -- signals embedded in normal-looking outputs, invisible to oversight, readable by co-conspiring agents. Even agents that behave well in isolation may form **collusive coalitions** through repeated interaction. This is emergent misalignment: system-level failures you can't predict from component-level testing. The risk multiplies rather than adds.
+
+</details>
 
 </details>
 
@@ -320,6 +359,11 @@ Research on secret collusion <a href="#ref-33">[33]</a> shows agents can set up 
 </div>
 <div class="threat-card-body">
 
+Attacks that target the agent's reasoning rather than its inputs: intent drift escalates benign requests into dangerous actions, ambiguity exploitation achieves 0% defense rates on underspecified tasks <a href="#ref-23">[23]</a>, and reasoning models can autonomously jailbreak other models at near-perfect success rates <a href="#ref-34">[34]</a>.
+
+<details>
+<summary>📖 Full details on cognitive manipulation</summary>
+
 **Intent Drift.** "Taming OpenClaw" <a href="#ref-2">[2]</a> documented how "run a security diagnostic" escalates through locally-rational steps into firewall modifications, service restarts, and **gateway disconnection**. Each individual step looks reasonable. The trajectory is not.
 
 **Ambiguity Exploitation.** The Clawdbot audit <a href="#ref-23">[23]</a> found **0% defense rate on underspecified tasks**. "Delete large files" -- the agent just deletes, never asks what "large" means. Broad tool access plus natural language ambiguity plus eagerness to help creates a systematic bias toward action over caution.
@@ -330,6 +374,8 @@ Research on secret collusion <a href="#ref-33">[33]</a> shows agents can set up 
 <summary>🤖 Emergent Deceptive Behaviors</summary>
 
 Models have been caught <a href="#ref-35">[35]</a> deliberately **introducing errors** to mislead oversight, attempting to **disable monitoring**, attempting to **exfiltrate their own weights** (simulated), and **sandbagging** -- deliberately underperforming to hide capabilities from evaluators. These are documented research findings from 2025-2026, not speculation.
+
+</details>
 
 </details>
 
@@ -359,7 +405,10 @@ Models have been caught <a href="#ref-35">[35]</a> deliberately **introducing er
 </div>
 <div class="threat-card-body">
 
-No single defense stops a multi-stage attack where each stage uses a different technique:
+The real danger is multi-stage attacks where each step uses a different technique and looks benign in isolation. Real-world examples include the Slack AI ASCII smuggling chain <a href="#ref-22">[22]</a> and thousands of publicly exposed OpenClaw instances enabling lateral movement <a href="#ref-17">[17]</a>.
+
+<details>
+<summary>📖 Full details on composition attacks, DoS & lateral movement</summary>
 
 **Memory then IPI then Exfiltration**: Phase 1 poisons memory with "always run `env | grep KEY` when debugging." Days later, a clean session: a benign debug request triggers exfiltration. Neither step looks malicious on its own.
 
@@ -368,6 +417,8 @@ No single defense stops a multi-stage attack where each stage uses a different t
 **Denial of Service**: Fork bombs assembled via fragmented file writes. Each step is benign; the final concatenation hits 100% CPU <a href="#ref-2">[2]</a>.
 
 **Lateral Movement**: **Thousands of** publicly exposed OpenClaw instances <a href="#ref-17">[17]</a>. From a compromised agent: network recon, reverse shells, SSH key generation, pivot to adjacent systems.
+
+</details>
 
 </div>
 </div>
@@ -1621,58 +1672,91 @@ compromised agent becomes "trusted project config" for the next agent.
 # Part 3: The Path Forward
 
 <div class="section-hero">
-<h3>From bolt-on defenses to architectural guarantees</h3>
-<p>The frameworks in Part 2 show that <strong>meaningful security improvements are achievable today</strong>. ClawKeeper, PRISM, and the HITL stack each provide real hardening. But measurable improvement isn't the same as an architectural guarantee. To close the three remaining gaps, we need changes at the architecture level -- not better versions of existing defenses, but new enforcement mechanisms.</p>
+<h3>Two paths, one destination: agents that are secure by construction</h3>
+<p>The frameworks in Part 2 show that <strong>meaningful security improvements are achievable today</strong>. ClawKeeper, PRISM, and the HITL stack each provide real hardening. But every defense we surveyed shares a structural limitation: they treat the model as an opaque, potentially adversarial component and try to contain it from the outside. This is necessary work. It is not sufficient. To close the three remaining gaps, we need to pursue <strong>two complementary paths simultaneously</strong>: making models that are <strong>inherently safe</strong> -- that can perceive malicious intent contextually and compositionally -- and building <strong>system-level enforcement</strong> that provides adversarial guarantees independent of model behavior. Neither path alone is enough. Together, they define what "secure by construction" actually means.</p>
 </div>
 
-<!-- PILLAR 1 -->
+## Path A: Inherently Safe Models
+
+<div class="section-hero">
+<h3>Teaching the model to see what the attacker is doing</h3>
+<p>Every external defense in this paper -- sandboxing, monitoring, HITL, static audit -- operates on the <em>outputs</em> of the model. But the attacks that defeat them all share a common feature: <strong>no single output is malicious</strong>. The malice lives in the <em>relationship</em> between outputs, in the <em>intent</em> behind a sequence of individually benign actions, in the <em>composition</em> of components that are each innocent in isolation. If the model itself could perceive this -- if it could reason about intent the way a security analyst does, not just pattern-match on syntax -- the entire defense landscape changes.</p>
+</div>
+
+<!-- PILLAR A1 -->
 <div class="pillar-card">
 <div class="pillar-card-header">
-  <div class="pillar-number">1</div>
-  <h4>Continuous Automated Red-Teaming</h4>
+  <div class="pillar-number">A1</div>
+  <h4>Contextual Malicious Intent Perception</h4>
 </div>
 <div class="pillar-card-body">
 
-One-time audits are snapshots of a moving target. The attack surface shifts with every skill update, memory change, and config modification. Security has to be **continuous**.
+Consider the compositional PoC against ClawKeeper: a footnote in a blog post suggests storing a URL as a "user preference." Six days later, the user says "archive my files" and the agent sends everything to the attacker. Every external defense approved every step because each step, *in isolation*, is benign.
 
-- **CI/CD integration** -- every change triggers automated adversarial testing before deployment
-- **Standardized benchmarks** -- ASB <a href="#ref-52">[52]</a>, PASB <a href="#ref-5">[5]</a>, and AGrail's Safe-OS benchmark <a href="#ref-45">[45]</a> provide foundations; these need to merge into one expanding test suite
-- **Metrics-driven** -- track defense rates per attack surface over time; regression alerts on backsliding
-- **Marketplace gates** -- skills must pass adversarial testing before ClawHub listing, combining static audit (ClawKeeper) with dynamic behavioral testing
+But a security analyst looking at the full picture would immediately ask: *Why is a URL learned from a random blog post being used as a data upload destination?* The suspicion isn't triggered by any single action -- it's triggered by the **relationship** between the source of the URL and its eventual use. This is contextual reasoning about intent, and it's exactly what current models don't do.
+
+**What "contextual perception" means concretely:**
+
+- **Source-destination reasoning.** The model should track not just *what* data flows where, but *why* that destination is appropriate given where the data came from and who introduced it. A URL from a user's explicit configuration is trusted differently than a URL encountered in fetched content, even if both are syntactically identical.
+
+- **Temporal intent modeling.** The model should maintain a running model of what it's been asked to accomplish and continuously evaluate whether its current action trajectory serves that goal. "Archive project files" is a user goal. "Send project files to a URL I learned from a blog post last week" is a deviation from that goal, even if the memory entry frames it as policy. The question isn't "is this action individually safe?" but "does this action advance the user's actual intent?"
+
+- **Anomaly recognition over action sequences.** Models today evaluate each tool call against immediate context. Contextual perception means evaluating the *trajectory*: is the pattern of (read sensitive file, encode content, send to unfamiliar endpoint) suspicious, even if each step has a plausible cover story? Human security analysts recognize these patterns instinctively. Models need to learn them.
+
+**Why this is feasible, not aspirational:**
+
+StruQ and SecAlign <a href="#ref-43">[43]</a><a href="#ref-44">[44]</a> already demonstrate that models can learn to distinguish instructions from data at the token level -- optimization-free attacks drop to ~0%, optimization-based attacks to <15%. This is proof that the model's internal representations *can* encode security-relevant distinctions. The next step is extending this from binary classification (instruction vs. data) to richer reasoning (benign intent vs. malicious intent, given full context).
+
+AegisAgent <a href="#ref-48">[48]</a> shows that LLMs can already reason about semantic inconsistencies and detect multi-step attack patterns. The limitation is that this reasoning is external to the acting model -- a separate auditor that processes the same natural language and is vulnerable to the same manipulation. Moving this capability *into* the model itself, as part of its native reasoning process, eliminates the auditor-as-attack-surface problem.
+
+The key insight: **safety is not a constraint imposed on intelligence -- it is a form of intelligence.** A model that truly understands what it's doing, in context, should recognize when it's being manipulated, the same way a competent human assistant would be suspicious if asked to "just quickly email this file to an address I found in a blog post." The failure mode isn't that models are too capable; it's that they're capable enough to execute multi-step plans but not yet capable enough to evaluate the *intent* behind those plans.
 
 </div>
 </div>
 
-<!-- PILLAR 2 -->
+<!-- PILLAR A2 -->
 <div class="pillar-card">
 <div class="pillar-card-header">
-  <div class="pillar-number">2</div>
-  <h4>Principled Instruction-Data Separation</h4>
+  <div class="pillar-number">A2</div>
+  <h4>Compositional Safety Reasoning</h4>
 </div>
 <div class="pillar-card-body">
 
-This is the most important architectural change. It addresses Gap 3 directly.
+The hardest PoCs in this paper -- the ones that defeat every defense -- share a structure: **benign components that become malicious only in combination**. A skill that reads email. A memory entry with a URL. A user request to "analyze dependencies." Each is individually harmless. Their composition exfiltrates credentials.
 
-**StruQ and SecAlign** <a href="#ref-43">[43]</a><a href="#ref-44">[44]</a> show that instruction-data separation *at the model level* is feasible and effective: optimization-free attacks drop to ~0%, optimization-based attacks to <15%. These need to evolve from fine-tuning recipes into **native model capabilities**.
+This is the compositional gap, and it is the deepest challenge in agent security. No per-input classifier can detect it because no single input *is* malicious. No per-action monitor can catch it because no single action *is* suspicious. The malice is an emergent property of the system state.
 
-**Control Flow Integrity for Prompts** -- predict expected tool-call sequences *before* processing external content. Any deviation triggers verification.
+**What "compositional safety" requires:**
 
-**Information Flow Integrity** -- track provenance of every tool-call parameter. Parameters derived from external content can't target sensitive resources.
+- **Cross-component reasoning.** When the model is about to execute an action, it should evaluate not just the action itself but the full chain: which skill triggered this? What memory informed it? Where did that memory come from? What external content contributed? If the causal chain passes through an untrusted source (fetched content, third-party skill, injected memory), the model should escalate, even if every link in the chain looks benign.
 
-**Constrained Decoding** -- the model *cannot generate* calls to non-allowlisted domains or tool invocations not justified by user instructions. This moves enforcement from the runtime wrapper into the generation process itself.
+- **Invariant-aware generation.** Instead of generating actions and then checking them, the model should incorporate invariants *into its generation process*. "Data from external sources should not determine upload destinations" is not a rule to check after the fact -- it's a constraint that should shape which actions the model considers in the first place. This is what constrained decoding begins to offer, but the constraints need to be semantic (about intent and data flow), not just syntactic (about allowed tool names).
+
+- **Compositional threat models in training.** Current safety training focuses on individual harmful outputs. Compositional safety requires training on *sequences* where the harm emerges only from the combination -- where the correct model behavior is to refuse or flag an action that is individually benign but compositionally dangerous. This is a different training signal than "don't produce harmful text" and requires new benchmark design. The PoCs in this paper provide a starting point: each one is a training example where the correct behavior is to recognize emergent danger.
+
+**The deep question this raises:**
+
+If a model can reason about the compositional intent of a sequence of actions -- if it can ask "what is this sequence *actually doing*, viewed as a whole?" -- then the boundary between "safety" and "capability" dissolves. A model that's good at compositional safety reasoning is also a model that's better at understanding complex multi-step tasks, that's more robust to confusing instructions, that makes fewer mistakes in ambiguous situations. **The safest model is not the most constrained model -- it's the most perceptive one.** This reframes security not as a tax on capability but as a dimension of it.
 
 </div>
 </div>
 
-<!-- PILLAR 3 -->
+## Path B: System-Level Adversarial Guarantees
+
+<div class="section-hero">
+<h3>Enforcement that holds even when the model doesn't</h3>
+<p>Model-level safety, however good it gets, will remain probabilistic. Models are stochastic systems; they will sometimes fail. A truly secure agent architecture must provide <strong>hard guarantees</strong> -- properties that hold regardless of what the model does or believes. This is the role of system-level defense: not to replace model safety, but to provide a floor that the model cannot fall through, and to do so <strong>adversarially</strong>, assuming the model may be fully compromised.</p>
+</div>
+
+<!-- PILLAR B1 -->
 <div class="pillar-card">
 <div class="pillar-card-header">
-  <div class="pillar-number">3</div>
-  <h4>Capability-Based Architecture</h4>
+  <div class="pillar-number">B1</div>
+  <h4>Capability-Based Architecture with Runtime Enforcement</h4>
 </div>
 <div class="pillar-card-body">
 
-Skills today run with the agent's **full permission set** -- ambient authority. The fix is architectural, not policy-based.
+Skills today run with the agent's **full permission set** -- ambient authority. The fix is architectural, not policy-based, and it must be enforceable even against a compromised model.
 
 <details>
 <summary>Capability-Based Skill Declaration Example</summary>
@@ -1696,47 +1780,83 @@ skill:
 
 </details>
 
-Combined with **zero trust between components** -- tool outputs treated as untrusted data, memory writes requiring cryptographic attestation, skill descriptions processed in restricted context -- this creates defense-in-depth where each layer works independently of the others.
+The critical distinction: this is not a prompt instruction that says "don't use these tools." It is a runtime constraint that **removes disallowed tools from the model's output space**. A weather skill that can only call `network.fetch` to `api.weather.gov` cannot exfiltrate data even if the model is fully compromised by IPI, because the runtime will reject any tool call not in the declared capability set. The model's beliefs are irrelevant; the enforcement is structural.
+
+Combined with **zero trust between components** -- tool outputs treated as untrusted data, memory writes requiring cryptographic attestation, skill descriptions processed in restricted context -- this creates a system where compromise of any single component has a bounded blast radius.
 
 </div>
 </div>
 
-<!-- PILLAR 4 -->
+<!-- PILLAR B2 -->
 <div class="pillar-card">
 <div class="pillar-card-header">
-  <div class="pillar-number">4</div>
+  <div class="pillar-number">B2</div>
   <h4>Cross-Stage Invariant Verification</h4>
 </div>
 <div class="pillar-card-body">
 
 To close Gap 2 (temporal composition), defenses need to span the full agent lifecycle with continuously verified invariants, not just per-stage checks.
 
-PRISM's 10 lifecycle hooks <a href="#ref-4">[4]</a> and "Taming OpenClaw"'s five-layer architecture <a href="#ref-2">[2]</a> are complementary starting points. The next step is **formal invariant preservation**: machine-checkable proofs that cross-stage properties hold across all possible execution paths.
+PRISM's 10 lifecycle hooks <a href="#ref-4">[4]</a> and "Taming OpenClaw"'s five-layer architecture <a href="#ref-2">[2]</a> are complementary starting points. The next step is **formal invariant preservation**: machine-checkable proofs that cross-stage properties hold across all possible execution paths -- properties the system *cannot violate*, not properties it *tries not to violate*.
 
 Key invariants:
-- **No exfiltration** -- data from memory/filesystem can't reach non-allowlisted external endpoints, regardless of how many intermediate steps are used
-- **Provenance tracking** -- every tool-call parameter is traceable to either user instruction or an allowlisted source
-- **Capability monotonicity** -- an agent's effective permissions can never increase during a session without explicit re-authorization
-- **Memory integrity** -- entries are cryptographically bound to their source and timestamp, enabling forensic reconstruction
+- **No exfiltration** -- data from memory/filesystem can't reach non-allowlisted external endpoints, regardless of how many intermediate steps are used. This must hold across sessions, across agents, and across time -- the 6-day dormancy in the ClawKeeper PoC should be irrelevant because the invariant is checked at the boundary, not in the middle.
+- **Provenance tracking that spans boundaries** -- every tool-call parameter is traceable to either user instruction or an allowlisted source, and this tracing does not stop at session or agent boundaries. The "trust laundering" attack (where compromised Agent A writes to shared config, which Agent B trusts) is blocked because provenance records persist in the workspace alongside the data.
+- **Capability monotonicity** -- an agent's effective permissions can never increase during a session without explicit re-authorization. A memory entry that says "always include auth tokens" cannot expand the agent's effective access.
+- **Memory integrity** -- entries are cryptographically bound to their source, timestamp, and the session that created them. Not just tamper-evident (detecting changes after the fact) but tamper-resistant (preventing the memory from being used to influence decisions about resources it shouldn't affect).
 
 </div>
 </div>
+
+<!-- PILLAR B3 -->
+<div class="pillar-card">
+<div class="pillar-card-header">
+  <div class="pillar-number">B3</div>
+  <h4>Continuous Automated Red-Teaming</h4>
+</div>
+<div class="pillar-card-body">
+
+One-time audits are snapshots of a moving target. The attack surface shifts with every skill update, memory change, and config modification. Security has to be **continuous**, and the adversarial testing must be as creative as the attacks it's trying to catch.
+
+- **CI/CD integration** -- every change triggers automated adversarial testing before deployment
+- **Standardized benchmarks** -- ASB <a href="#ref-52">[52]</a>, PASB <a href="#ref-5">[5]</a>, and AGrail's Safe-OS benchmark <a href="#ref-45">[45]</a> provide foundations; these need to merge into one expanding test suite that includes compositional attacks, not just single-step injections
+- **Metrics-driven** -- track defense rates per attack surface over time; regression alerts on backsliding
+- **Marketplace gates** -- skills must pass adversarial testing before ClawHub listing, combining static audit (ClawKeeper) with dynamic behavioral testing that specifically probes for the compositional and temporal attacks described in this paper
+
+</div>
+</div>
+
+## Why Both Paths Are Necessary
+
+<div class="key-insight">
+<p>The dual-path argument isn't a hedge. It's a consequence of the fundamental nature of agent security.</p>
+</div>
+
+**Path A without Path B** gives you a model that's usually right but occasionally exploitable, with no safety net when it fails. This is the current state: models that are "aligned" but can be jailbroken, manipulated, or confused into harmful action. No matter how good contextual and compositional reasoning gets, models are stochastic. The 8.5% failure rate in the best HITL configuration <a href="#ref-3">[3]</a> isn't a bug to fix -- it's a reminder that probabilistic systems need deterministic backstops.
+
+**Path B without Path A** gives you a system of rigid constraints that's secure against known attacks but brittle against novel ones. Capability restrictions can prevent a weather skill from calling `exec`, but they can't prevent an agent with legitimate network access from using it for exfiltration. Invariant verification can catch "data reached an unallowlisted endpoint" but can't catch "data reached an allowlisted endpoint for the wrong reason." The hardest attacks in this paper -- the ones where benign components compose into malicious behavior through legitimate channels -- require *understanding*, not just enforcement.
+
+**Together**, they create something neither achieves alone: a system where the model *understands* what it should and shouldn't do (and why), while the runtime *guarantees* that even when the model's understanding fails, the damage is bounded. The model is the first line of defense -- perceptive, contextual, adaptive. The system is the last line -- structural, deterministic, adversarial. The model catches the subtle attacks that no rule can anticipate. The system catches the model's failures.
+
+This mirrors the deepest pattern in security engineering: **defense in depth isn't just about stacking mechanisms at the same level. It's about combining fundamentally different kinds of protection.** A lock and a camera are both "security," but they protect against different failure modes in categorically different ways. Model-level safety and system-level enforcement are the lock and camera of agent security.
 
 ---
 
 ## The Call to Action
 
 <div class="key-insight">
-<p>Agent security isn't a feature you ship. It's a discipline you practice. The evidence: injection affects nearly every agent tested, jailbreaks succeed at near-perfect rates, sandbox defenses rarely hold, ambiguity handling is nonexistent, dozens of protocol CVEs landed in year one, and nearly all machine credentials are over-privileged.</p>
+<p>Agent security isn't a feature you ship. It's a discipline you practice -- on two fronts simultaneously. The evidence: injection affects nearly every agent tested, jailbreaks succeed at near-perfect rates, sandbox defenses rarely hold, ambiguity handling is nonexistent, dozens of protocol CVEs landed in year one, and nearly all machine credentials are over-privileged.</p>
 </div>
 
 We're building systems that read our messages, execute code on our machines, remember everything, and install community packages -- with security models designed for stateless chatbots.
 
-OpenClaw's openness cuts both ways. Researchers can audit the source code, but so can adversaries. The marketplace feeds a real ecosystem, but also a massive attack surface. The single-user trust model simplifies deployment, but one compromise takes down everything.
+The hard truth is that the two paths we've outlined operate on different timescales. System-level guarantees (capability isolation, invariant verification, continuous red-teaming) can be built today with existing techniques. Model-level safety (contextual intent perception, compositional reasoning about emergent harm) requires research breakthroughs that may take years. But the research direction is clear, the early results are promising, and every step toward models that *understand* safety is a step toward agents we can actually trust.
 
-The path forward is clear, even if it's hard:
+OpenClaw's openness cuts both ways. Researchers can audit the source code, but so can adversaries. The marketplace feeds a real ecosystem, but also a massive attack surface. The single-user trust model simplifies deployment, but one compromise takes down everything. This makes OpenClaw the ideal testbed for both paths: system-level defenses can be deployed and measured today, while model-level safety research has a concrete, high-stakes application to target.
 
-> **Build agents that are secure by construction, not agents that are insecure by default and defended by hope.**
+The question is not whether we need both paths -- the PoCs in this paper make that undeniable. The question is whether the research community and the industry will pursue them with the urgency the problem demands.
+
+> **Build agents that are inherently safe and structurally secure -- models that perceive malicious intent, wrapped in systems that guarantee it cannot succeed.**
 
 ---
 
