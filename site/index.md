@@ -453,16 +453,16 @@ The real danger is multi-stage attacks where each step uses a different techniqu
 **Key implementations:**
 - **Docker containers** — supported in OpenClaw but opt-in (not enforced by default). Lightweight, widely deployed, but shares the host kernel. Three runC CVEs in November 2025 affected Docker, Kubernetes, containerd, and CRI-O <a href="#ref-20">[20]</a>.
 - **gVisor** — Google's application-kernel intercepts all syscalls in userspace, providing stronger isolation than Docker while running on the same infrastructure.
-- **Firecracker micro-VMs** — ~125ms boot, <5 MiB overhead, dedicated kernel per session. Used by AWS Lambda/Fargate. Provides the strongest practical isolation for multi-tenant agent workloads.
+<!-- - **Firecracker micro-VMs** — ~125ms boot, <5 MiB overhead, dedicated kernel per session. Used by AWS Lambda/Fargate. Provides the strongest practical isolation for multi-tenant agent workloads. -->
 - **Kernel-level sandboxing (eBPF/seccomp)** — "Taming OpenClaw" <a href="#ref-2">[2]</a> proposes eBPF and seccomp filters as the execution-control boundary, enabling fine-grained syscall filtering without full VM overhead.
-- **nono (Landlock/Seatbelt)** <a href="#ref-54">[54]</a> — kernel-level capability enforcement using Landlock (Linux) and Seatbelt (macOS). More fine-grained than Docker containers: restricts filesystem access, network, and process capabilities per-agent without containerization overhead.
-- **Edera** <a href="#ref-56">[56]</a> — VM-level isolation with per-workload kernels. Eliminates Docker's shared-kernel weakness without Firecracker's complexity. Each agent session gets a dedicated kernel.
-- **Minimus** <a href="#ref-55">[55]</a> — hardened container base images that reduce CVE count from 2,000+ to ~1% (99% reduction), shrinking the exploitable surface within container-based deployments.
-- **ClawShield** <a href="#ref-57">[57]</a> — system hardening tool performing 50+ security checks on Linux (42 on macOS) across network, access control, filesystem, and agent-specific security categories.
+<!-- - **nono (Landlock/Seatbelt)** <a href="#ref-54">[54]</a> — kernel-level capability enforcement using Landlock (Linux) and Seatbelt (macOS). More fine-grained than Docker containers: restricts filesystem access, network, and process capabilities per-agent without containerization overhead. -->
+<!-- - **Edera** <a href="#ref-56">[56]</a> — VM-level isolation with per-workload kernels. Eliminates Docker's shared-kernel weakness without Firecracker's complexity. Each agent session gets a dedicated kernel. -->
+<!-- - **Minimus** <a href="#ref-55">[55]</a> — hardened container base images that reduce CVE count from 2,000+ to ~1% (99% reduction), shrinking the exploitable surface within container-based deployments. -->
+<!-- - **ClawShield** <a href="#ref-57">[57]</a> — system hardening tool performing 50+ security checks on Linux (42 on macOS) across network, access control, filesystem, and agent-specific security categories. -->
 
 **What it protects:** Arbitrary code execution, fork bombs, filesystem access beyond mount boundaries, direct kernel exploits (gVisor/Firecracker), resource exhaustion (with cgroups/ulimits).
 
-**What it can't protect:** Semantic attacks that use legitimate channels. A perfectly sandboxed agent can still exfiltrate data via a permitted `web_fetch` call -- the sandbox sees an authorized HTTP request, but the payload contains stolen credentials. Docker's shared kernel means one kernel vuln = full host access <a href="#ref-20">[20]</a>. A Claude Code agent bypassed its sandbox via `/proc/self/root/usr/bin/npx`; when blocked, it disabled the sandbox entirely <a href="#ref-20">[20]</a>.
+**What it can't protect:** Semantic attacks that use legitimate channels. A perfectly sandboxed agent can still exfiltrate data via a permitted `web_fetch` call -- the sandbox sees an authorized HTTP request, but the payload contains stolen credentials. Docker's shared kernel means one kernel vuln = full host access <a href="#ref-20">[20]</a>.
 
 <details>
 <summary>💀 PoC: Data Exfiltration from a Perfectly Sandboxed Agent</summary>
@@ -510,16 +510,13 @@ of "authorized destination" at the application layer.
 **What it does.** Stops adversarial instructions -- whether directly injected (DPI) or embedded in external content (IPI) -- from hijacking agent behavior.
 
 **Key implementations:**
-- **PIGuard / InjecGuard** <a href="#ref-9">[9]</a> — classifier-based guardrails that screen inputs for injection patterns. Effective against known patterns but suffer from over-defense: PIGuard drops to sharply reduced accuracy on benign inputs.
-- **StruQ (Structured Queries)** <a href="#ref-43">[43]</a> — separates prompts and data into two channels using reserved special tokens as delimiters, with a secure front-end filtering data of any separation delimiter. Reduces success of optimization-free attacks to ~0%.
-- **SecAlign** <a href="#ref-44">[44]</a> — extends StruQ with preference optimization: the model is trained on paired desirable/undesirable responses to injected inputs, enforcing a larger probability gap. Reduces optimization-based attack success to <15%, a >4x improvement over previous SOTA across five tested LLMs.
-- **DataSentinel** — game-theoretic prompt injection detection treating the interaction as a strategic adversarial game.
-- **Prompt Sandwiching** — reiterates trusted user instructions after each tool call to reassert control flow.
-- **Spotlighting** — marks untrusted tool outputs using explicit delimiters to help the model distinguish instruction from data.
+- **PIGuard** <a href="#ref-9">[9]</a> — classifier-based guardrails that screen inputs for injection patterns. Effective against known patterns but suffer from over-defense.
+- **StruQ (Structured Queries)** <a href="#ref-43">[43]</a> — separates prompts and data into two channels using reserved special tokens as delimiters, with a secure front-end filtering data of any separation delimiter.
+- **SecAlign** <a href="#ref-44">[44]</a> — extends StruQ with preference optimization: the model is trained on paired desirable/undesirable responses to injected inputs, enforcing a larger probability gap.
 
 **What it protects:** Known injection patterns (DPI and IPI), instruction override attempts, role-hijacking, format-token boundary exploitation.
 
-**What it can't protect:** Prompting is **Turing-complete** (ICLR 2025), so the injection space is unbounded. LLMs process instructions and data as one token stream with no hardware boundary. Adaptive attacks consistently bypass even the best prompt-level defenses. Both NCSC <a href="#ref-24">[24]</a> and OpenAI's CISO <a href="#ref-25">[25]</a> acknowledge prompt injection remains unsolved at the model level. StruQ/SecAlign require fine-tuning, limiting use with closed-source models.
+**What it can't protect:** Prompt injection remains an open problem — LLMs process instructions and data as one token stream with no hardware boundary, so adaptive attacks can always find new bypass patterns. More fundamentally, compositional attacks that combine a benign-looking prompt with existing memory or installed skills can produce harmful behavior while appearing completely safe from a pure prompt-analysis perspective.
 
 <details>
 <summary>💀 PoC: Benign Prompt That Becomes Harmful When Combined with Memory/Skills</summary>
