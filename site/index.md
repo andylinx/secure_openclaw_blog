@@ -16,9 +16,9 @@ outline: [2, 3]
 
 ## Abstract
 
-OpenClaw is a tool-using, persistent, multi-channel AI agent platform. Its agents read your messages across WhatsApp, Telegram, Discord, and Slack, execute arbitrary code on your machine, remember everything in persistent Markdown files, and install community-contributed skills from a public marketplace. This is probably the future of personal AI. It's also a security disaster that nobody has a good answer for yet.
+OpenClaw is a tool-using, persistent, multi-channel AI agent platform. Its agents read your messages across WhatsApp, Telegram, Discord, and Slack, run tools on your machine, maintain persistent memory, and install community-contributed skills from a public marketplace. This is probably the future of personal AI. It's also a security disaster that nobody has a good answer for yet.
 
-This paper does three things. First, we map **fourteen attack surfaces** specific to agentic AI -- from the familiar (prompt injection) to the newly identified (non-human identity credential attacks, A2A session smuggling, autonomous reasoning-model jailbreaks, multi-agent steganographic collusion, the MCP CVE explosion) -- grounding each in real research and real incidents through March 2026. Second, we evaluate **eight categories of defenses** and **five integrated frameworks** that combine multiple mechanisms to reach 70-95% defense rates on known attack patterns. Third, we identify **three gaps that nothing currently fixes** -- novel adaptive attacks, temporal composition, and model-level guarantees -- and argue that closing them requires architectural redesign: real instruction-data separation, capability-based access control, and cross-stage invariant verification across the full agent lifecycle.
+This paper does three things. First, we map the attack surfaces specific to agentic AI, grounding each in real research and real incidents. Second, we evaluate existing categories of defenses and integrated frameworks that combine multiple mechanisms. Third, we identify gaps that nothing currently fixes and argue that closing them requires architectural redesign: real instruction-data separation, capability-based access control, and cross-stage invariant verification across the full agent lifecycle.
 
 ---
 
@@ -26,7 +26,7 @@ This paper does three things. First, we map **fourteen attack surfaces** specifi
 
 Traditional software security assumes deterministic execution. Agent security doesn't get that. An LLM-powered agent is a stochastic system shaped by natural language instructions, external content, persistent memory, installed skills, and whatever the model decides to do next.
 
-Six components (**Gateway**, **Agent Runtime**, **Persistent Memory**, **ClawHub Marketplace**, **Tool Execution**, **MCP Integration**) combine into a triad that's uniquely dangerous: **tool use + persistence + multi-channel exposure**.
+Six components (**Gateway**, **Agent Runtime**, **Persistent Memory**, **Skills**, **Tool Execution**, **MCP Integration**) combine into a triad that's uniquely dangerous: **tool use + persistence + multi-channel exposure**.
 
 A chatbot that gets prompt-injected produces bad text. An agent that gets prompt-injected can exfiltrate your SSH keys, poison its own memory to repeat the attack next session, and spread to other agents sharing the same workspace.
 
@@ -444,7 +444,7 @@ The real danger is multi-stage attacks where each step uses a different techniqu
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🐳 Sandboxing & Isolation</h4>
-  <span class="verdict-badge partial">Essential but Incomplete</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -498,16 +498,12 @@ of "authorized destination" at the application layer.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: code execution, resource abuse, filesystem escape</span>
-  <span class="bypass">Cannot stop: semantic exfiltration, tool-level attacks, prompt injection</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🛡️ Prompt Injection Defenses</h4>
-  <span class="verdict-badge partial">Active Research Frontier</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -587,16 +583,12 @@ but structurally insufficient — it guards one layer of a multi-layer system.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: known injection patterns, basic override attempts</span>
-  <span class="bypass">Cannot stop: novel adaptive attacks, Turing-complete injection space</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>📡 Runtime Detection & Monitoring</h4>
-  <span class="verdict-badge partial">Critical Layer</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -664,16 +656,12 @@ authors explicitly acknowledge: "Detection coverage is necessarily incomplete"
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: known attack patterns, credential leaks, dangerous commands</span>
-  <span class="bypass">Cannot stop: novel obfuscation, fragmentation attacks, semantic-level threats</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🧠 Memory & State Integrity</h4>
-  <span class="verdict-badge partial">Emerging Solutions</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -765,16 +753,12 @@ real-world referent of the URL — which is outside the analyzer's scope.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: known poisoning patterns, unauthorized writes, error cycles</span>
-  <span class="bypass">Cannot stop: majority-memory compromise, legitimately-written adversarial content</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🔍 Static Audit & Supply Chain</h4>
-  <span class="verdict-badge partial">Necessary Pre-Deployment</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -878,16 +862,12 @@ predict what an email will contain next Tuesday.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: known malicious patterns, dependency vulns, config weaknesses</span>
-  <span class="bypass">Cannot stop: semantic attacks, rug-pulls, runtime-triggered behavior</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>👤 Human-in-the-Loop (HITL)</h4>
-  <span class="verdict-badge partial">High-Impact for Critical Actions</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -961,16 +941,12 @@ look routine to human reviewers.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: high-risk operations, escalation, sandbox escape</span>
-  <span class="bypass">Cannot stop: high-frequency attacks, subtle semantic exploits, alert fatigue</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🤖 LLM-Based & Multi-Agent Auditing</h4>
-  <span class="verdict-badge partial">Improving Rapidly</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -1037,16 +1013,12 @@ descriptions, which the attacker controls.
 </details>
 
 </div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: complex patterns, semantic inconsistencies, intent drift</span>
-  <span class="bypass">Cannot stop: attacks targeting the auditor itself, novel attack patterns</span>
-</div>
 </div>
 
 <div class="defense-card">
 <div class="defense-card-header">
   <h4>🏢 Enterprise & Network-Level Platforms</h4>
-  <span class="verdict-badge partial">Infrastructure Foundation</span>
+
 </div>
 <div class="defense-card-body">
 
@@ -1118,10 +1090,6 @@ of network-level zero trust architectures.
 
 </details>
 
-</div>
-<div class="defense-card-footer">
-  <span class="coverage">Protects: network, identity, compliance, lateral movement</span>
-  <span class="bypass">Cannot stop: semantic attacks, model-level threats, non-enterprise deployments</span>
 </div>
 </div>
 
